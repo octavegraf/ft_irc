@@ -2,4 +2,4 @@
 
 #include <cstdlib>
 #include <iostream>
-#include "../include/errors.hpp"
+#include "errors.hpp"
