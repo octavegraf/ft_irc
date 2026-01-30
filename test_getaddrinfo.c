@@ -6,7 +6,7 @@
 /*   By: rchan-re <rchan-re@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/29 11:56:19 by rchan-re          #+#    #+#             */
-/*   Updated: 2026/01/29 15:28:31 by rchan-re         ###   ########.fr       */
+/*   Updated: 2026/01/30 17:44:15 by rchan-re         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,7 @@ int	main(int argc, char **argv)
 
 	if (argc != 3)
 		return (1);
-	if (getaddrinfo(NULL, argv[2], NULL, &ptr))
+	if (getaddrinfo(argv[1], argv[2], NULL, &ptr))
 		return (1);
 	while (ptr != NULL)
 	{

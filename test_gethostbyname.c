@@ -6,7 +6,7 @@
 /*   By: rchan-re <rchan-re@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/27 13:44:51 by rchan-re          #+#    #+#             */
-/*   Updated: 2026/01/27 15:21:21 by rchan-re         ###   ########.fr       */
+/*   Updated: 2026/01/30 18:16:24 by rchan-re         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,7 +40,7 @@ int	main(void)
 		printf("h_addrtype: %d\n", ptr->h_addrtype);
 		printf("h_length: %d\n", ptr->h_addrtype);
 		i = 0;
-		while (ptr->h_aliases[i] != NULL)
+		while (ptr->h_addr_list[i] != NULL)
 		{
 			printf("h_addr_list: %s\n", ptr->h_addr_list[i]);
 			i++;
