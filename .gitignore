@@ -1,2 +1,8 @@
-ircserv
+*.o*
+objects
+*.pch
+*.gch
+test
+tests
 obj/
+ircserv
