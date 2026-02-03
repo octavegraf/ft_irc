@@ -3,17 +3,17 @@
 /*                                                        :::      ::::::::   */
 /*   test_socket.c                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: rchan-re <rchan-re@student.42.fr>          +#+  +:+       +#+        */
+/*   By: ocgraf <ocgraf@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/29 10:43:48 by rchan-re          #+#    #+#             */
-/*   Updated: 2026/02/03 13:55:06 by rchan-re         ###   ########.fr       */
+/*   Updated: 2026/02/03 15:09:30 by ocgraf           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <stdio.h>
 #include <netdb.h>
 #include <unistd.h>
-#define BUFFER_SIZE 10
+#define BUFFER_SIZE 1024
 
 static void	addr_print_info(struct addrinfo *ptr)
 {
@@ -60,7 +60,9 @@ int	main(int argc, char **argv)
 	struct addrinfo	hints;
 	int				sfd;
 	char			buffer[BUFFER_SIZE];
+	char			response[BUFFER_SIZE];
 	int				nbytes;
+	int				response_len;
 	struct sockaddr	addr;
 	socklen_t		len;
 	int				read_sfd;
@@ -120,14 +122,34 @@ int	main(int argc, char **argv)
 	printf("sfd: %d, read_sfd: %d\n", sfd, read_sfd);
 	fflush(stdout);
 	//sleep(10);
-	nbytes = recv(read_sfd, buffer, BUFFER_SIZE, 0);
-	while (nbytes > 0) // \n\r?
+	nbytes = recv(read_sfd, buffer, BUFFER_SIZE - 1, 0);
+	while (1)
 	{
-		//printf("nbytes: %d\n", nbytes);
+		if (nbytes <= 0)
+		{
+			if (nbytes == -1)
+				perror("recv(): ");
+			break ;
+		}
+		buffer[nbytes] = '\0';
 		write(1, buffer, nbytes);
-		nbytes = recv(read_sfd, buffer, BUFFER_SIZE, 0);
-		if (send(write_sfd, "YOUR MESSAGE TO SEND BACK", 25, 0) == -1)
-			return (close(sfd), close(read_sfd), close(write_sfd), freeaddrinfo(res), perror("write send(): "), 1);
+		fflush(stdout);
+		// Lire la réponse depuis stdin
+		printf("\nResponse: ");
+		fflush(stdout);
+		response_len = read(0, response, BUFFER_SIZE - 1);
+		if (response_len > 0)
+		{
+			// Envoyer la réponse au client
+			if (send(read_sfd, response, response_len, 0) == -1)
+			{
+				perror("send(): ");
+				break ;
+			}
+			printf("Reponse envoyee (%d bytes)\n", response_len);
+			fflush(stdout);
+		}
+		nbytes = recv(read_sfd, buffer, BUFFER_SIZE - 1, 0);
 	}
 	write(1, "\n", 1);
 	close(sfd);
