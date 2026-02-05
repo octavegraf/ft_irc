@@ -6,7 +6,7 @@
 /*   By: rchan-re <rchan-re@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/29 10:43:48 by rchan-re          #+#    #+#             */
-/*   Updated: 2026/02/05 14:25:43 by rchan-re         ###   ########.fr       */
+/*   Updated: 2026/02/05 16:24:37 by rchan-re         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -88,9 +88,9 @@ int	main(int argc, char **argv)
 	// get addr info: ircd 6667
 	//fill_getaddrinfo_hints(&hints, 0, AF_UNSPEC, 0, 17); // udp
 	//fill_getaddrinfo_hints(&hints, 0, AF_UNSPEC, 0, 6); // tcp
-	//fill_getaddrinfo_hints(&hints, 0, AF_UNSPEC, AF_INET, 6); // tcp ipv4
-	//fill_getaddrinfo_hints(&hints, 0, AF_UNSPEC, AF_INET6, 6); // tcp ipv6
-	fill_getaddrinfo_hints(&hints, 0, AF_UNSPEC, AF_LOCAL, 6); // tcp local
+	//fill_getaddrinfo_hints(&hints, 0, AF_INET, 0, 6); // tcp ipv4
+	//fill_getaddrinfo_hints(&hints, 0, AF_INET6, 0, 6); // tcp ipv6
+	fill_getaddrinfo_hints(&hints, 0, AF_UNSPEC, SOCK_STREAM, 6);
 	//fill_getaddrinfo_hints(&hints, 0, AF_UNSPEC, 0, 0); // ip
 	//fill_getaddrinfo_hints(&hints, 0, 0, 0, 0); // no hints
 	val = getaddrinfo(argv[1], argv[2], &hints, &res);
