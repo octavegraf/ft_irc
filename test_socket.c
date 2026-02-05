@@ -6,14 +6,29 @@
 /*   By: rchan-re <rchan-re@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/01/29 10:43:48 by rchan-re          #+#    #+#             */
-/*   Updated: 2026/02/03 13:55:06 by rchan-re         ###   ########.fr       */
+/*   Updated: 2026/02/05 14:25:43 by rchan-re         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <stdio.h>
-#include <netdb.h>
 #include <unistd.h>
-#define BUFFER_SIZE 10
+#include <errno.h>
+#include <fcntl.h>
+#include <netdb.h>
+#include <sys/socket.h>
+#include <poll.h>
+#define BUFFER_SIZE 1024
+
+static void	print_sockaddr(struct sockaddr *addr, socklen_t len)
+{
+	printf("sockaddr: ");
+	for (unsigned int i = 0; i < len && i < 14; i++)
+	{
+		printf("%u.", addr->sa_data[i]);
+	}
+	printf("\n");
+}
+
 
 static void	addr_print_info(struct addrinfo *ptr)
 {
@@ -49,8 +64,8 @@ static void	init_sockaddr(struct sockaddr *s, socklen_t *len)
 {
 	s->sa_family = 0;
 	for (int i = 0; i < 14; i++)
-		s->sa_data[i] = 0;
-	*len = 0;
+		s->sa_data[i] = 42;
+	*len = 14;
 }
 
 int	main(int argc, char **argv)
@@ -64,8 +79,9 @@ int	main(int argc, char **argv)
 	struct sockaddr	addr;
 	socklen_t		len;
 	int				read_sfd;
-	int				write_sfd;
+//	int				write_sfd;
 	int				val;
+	struct pollfd	sfds[2];
 
 	if (argc != 3)
 		return (1);
@@ -74,8 +90,8 @@ int	main(int argc, char **argv)
 	//fill_getaddrinfo_hints(&hints, 0, AF_UNSPEC, 0, 6); // tcp
 	//fill_getaddrinfo_hints(&hints, 0, AF_UNSPEC, AF_INET, 6); // tcp ipv4
 	//fill_getaddrinfo_hints(&hints, 0, AF_UNSPEC, AF_INET6, 6); // tcp ipv6
-	//fill_getaddrinfo_hints(&hints, 0, AF_UNSPEC, AF_LOCAL, 6); // tcp local
-	fill_getaddrinfo_hints(&hints, 0, AF_UNSPEC, 0, 0); // ip
+	fill_getaddrinfo_hints(&hints, 0, AF_UNSPEC, AF_LOCAL, 6); // tcp local
+	//fill_getaddrinfo_hints(&hints, 0, AF_UNSPEC, 0, 0); // ip
 	//fill_getaddrinfo_hints(&hints, 0, 0, 0, 0); // no hints
 	val = getaddrinfo(argv[1], argv[2], &hints, &res);
 	if (val != 0)
@@ -85,7 +101,7 @@ int	main(int argc, char **argv)
 	while (ptr != NULL)
 	{
 		addr_print_info(ptr);
-		sfd = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
+		sfd = socket(ptr->ai_family, ptr->ai_socktype | SOCK_NONBLOCK, ptr->ai_protocol);
 		if (sfd == -1)
 			return (freeaddrinfo(res), perror("socket(): "), 1);
 		if (bind(sfd, ptr->ai_addr, ptr->ai_addrlen) == 0) // check errno in case of fail: assignment in progress etc.
@@ -106,32 +122,76 @@ int	main(int argc, char **argv)
 	// accept?
 	read_sfd = sfd;
 	init_sockaddr(&addr, &len);
-	if (ptr->ai_protocol == 6)
-		read_sfd = accept(sfd, &addr, &len);
-	if (read_sfd == -1)
-		return (freeaddrinfo(res), perror("accept(): "), 1);
-	write_sfd = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
+//	print_sockaddr(&addr, len);
+	int n = 0;
+	while (n < 2)
+	{
+		if (ptr->ai_protocol == 6)
+		{
+			read_sfd = accept(sfd, &addr, &len);
+//			while (read_sfd == sfd || (read_sfd == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)))
+			while (read_sfd == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))
+				read_sfd = accept(sfd, &addr, &len);
+			if (read_sfd == -1)
+				return (close(sfd), freeaddrinfo(res), perror("accept(): "), 1);
+			print_sockaddr(&addr, len);
+			if (fcntl(read_sfd, F_SETFL, O_NONBLOCK) == -1)
+				return (close(sfd), close(read_sfd), freeaddrinfo(res), perror("accept(): "), 1);
+		}
+		sfds[n].fd = read_sfd;
+//		sfds[n].events = POLLIN | POLLPRI | POLLOUT;
+		sfds[n].events = POLLIN | POLLOUT;
+		sfds[n].revents = 0;
+		n++;
+	}
+/*	write_sfd = socket(ptr->ai_family, ptr->ai_socktype | SOCK_NONBLOCK, ptr->ai_protocol); // NONBLOCK flag + poll check for writing
 	if (write_sfd == -1)
 		return (close(sfd), close(read_sfd), freeaddrinfo(res), perror("write socket(): "), 1);
+	sleep(5);
 	if (connect(write_sfd, &addr, len) != 0)
 		return (close(sfd), close(read_sfd), freeaddrinfo(res), perror("write connect(): "), 1);
+	if (getsockname(write_sfd, &addr, &len) != 0)
+		return (close(sfd), close(read_sfd), freeaddrinfo(res), perror("getsockname(): "), 1);
+	print_sockaddr(&addr, len);*/
 	freeaddrinfo(res);
 	// recv?
+	//printf("sfd: %d, read_sfd: %d, write_sfd: %d\n", sfd, read_sfd, write_sfd);
 	printf("sfd: %d, read_sfd: %d\n", sfd, read_sfd);
 	fflush(stdout);
 	//sleep(10);
-	nbytes = recv(read_sfd, buffer, BUFFER_SIZE, 0);
-	while (nbytes > 0) // \n\r?
+
+
+
+	while (1)
 	{
-		//printf("nbytes: %d\n", nbytes);
-		write(1, buffer, nbytes);
-		nbytes = recv(read_sfd, buffer, BUFFER_SIZE, 0);
-		if (send(write_sfd, "YOUR MESSAGE TO SEND BACK", 25, 0) == -1)
-			return (close(sfd), close(read_sfd), close(write_sfd), freeaddrinfo(res), perror("write send(): "), 1);
+		int	res_poll = poll(sfds, 2, 0);
+		if (res_poll == -1)
+			return (perror("poll(): "), 1); // exit properly
+//		printf("res_poll: %d\n", res_poll);
+		for (int i=0; i < 2; i++)
+		{
+//			if ((sfds[i].revents | POLLIN) == POLLIN || (sfds[i].revents | POLLPRI) == POLLPRI)
+			if ((sfds[i].revents & POLLIN) == POLLIN)
+			{
+				nbytes = recv(sfds[i].fd, buffer, BUFFER_SIZE, 0);
+				while (nbytes > 0) // \n\r?
+				{
+					//printf("nbytes: %d\n", nbytes);
+					write(1, buffer, nbytes);
+					nbytes = recv(sfds[i].fd, buffer, BUFFER_SIZE, 0);
+				}
+				//if ((sfds[i].revents & POLLOUT) == POLLOUT && printf("%d\n", i) && (send(sfds[i].fd, "H\n", 2, 0) == -1) )
+				if ((sfds[i].revents & POLLOUT) == POLLOUT && (send(sfds[i].fd, "H\n", 2, 0) == -1) )
+				//if ((send(read_sfd, "H", 1, 0) == -1) && printf("%d\n", i))
+					//return (close(sfd), close(read_sfd), close(write_sfd), freeaddrinfo(res), perror("write send(): "), fflush(stdout), 1);
+					return (close(sfd), close(read_sfd), freeaddrinfo(res), perror("write send(): "), fflush(stdout), 1);
+			}
+		}
 	}
+
 	write(1, "\n", 1);
 	close(sfd);
 	close(read_sfd);
-	close(write_sfd);
+	//close(write_sfd);
 	
 }
