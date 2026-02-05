@@ -11,7 +11,7 @@ typedef struct	s_msg
 	std::string command;
 	std::vector<std::string> params;
 
-	s_msg() : nickname(NULL), username(NULL), hostname(NULL), command(NULL), params(NULL) {}
+	s_msg() : nickname(""), username(""), hostname(""), command(""), params() {}
 }	t_msg;
 
 // Message structure : https://datatracker.ietf.org/doc/html/rfc1459#section-2.3.1

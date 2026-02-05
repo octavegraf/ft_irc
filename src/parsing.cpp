@@ -68,8 +68,3 @@ void msg_params(t_msg *msg, std::string complete_msg)
 			break ;
 	}
 }
-
-// int main(void)
-// {
-// 	msg_params()
-// }

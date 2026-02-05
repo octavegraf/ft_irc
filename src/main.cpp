@@ -1,4 +1,5 @@
 #include "main.hpp"
+#include "Server.hpp"
 
 int main(int argc, char **argv)
 {
@@ -21,5 +22,11 @@ int main(int argc, char **argv)
 		std::cout << ERR_INVALID_PORT << std::endl;
 		return (1);
 	}
+	std::string hostname = "host";
+	unsigned int listenSfd = 0; // @rchanrenous need to change this
+	if (argc == 2)
+		Server server(argv[1], listenSfd, hostname);
+	if (argc == 3)
+		Server server(argv[1], listenSfd, hostname, argv[2]);
 	return (0);
 }
