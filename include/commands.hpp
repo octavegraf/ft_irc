@@ -6,6 +6,9 @@
 #include "message.hpp"
 #include "Server.hpp"
 
+// Utils
+User *searchUser(std::string nickname, std::vector<User &> users);
+
 // Server Scope
 int cap(t_msg *msg);
 int pass(t_msg *msg, const Server &server);
