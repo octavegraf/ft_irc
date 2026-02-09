@@ -1,10 +1,10 @@
 CC					=	c++
-CFLAGS				=	-Wall -Wextra -Werror -std=c++98 -MMD
+CFLAGS				=	-Wall -Wextra -Werror -Wshadow -std=c++98 -MMD
 NAME				=	ircserv
-FILES				=	main
+FILES				=	main parsing Server
 SRC					=	$(addprefix src/, $(addsuffix .cpp, $(FILES)))
 INCLUDES			=	-Iinclude
-OBJ_FOLDER			=	objects/
+OBJ_FOLDER			=	obj/
 OBJ					=	$(addprefix $(OBJ_FOLDER), $(SRC:.cpp=.o))
 DPD					=	$(addprefix $(OBJ_FOLDER), $(SRC:.cpp=.d))
 
