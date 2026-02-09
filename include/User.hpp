@@ -12,15 +12,22 @@ class User
 		std::string _username; // Not unique, server identifier
 		std::string _realname; // For real name, contains spaces
 		int _sfd; // Socket file descriptor
-		// bool _isOnline;
+		bool _completeInfos;
 
+	public:
+		User(std::string nickname, int sfd);
+		~User();
+
+		// getters
+		std::string getNickname() const ;
+		std::string getUsername() const ;
+		std::string getRealName() const ;
+		int getFd() const ;
+
+		// setters
 		int setNickname(std::string const &nickname);
 		int setUsername(std::string const &username);
 		int setRealname(std::string const &realname);
-
-	public:
-		User(std::string nickname, std::string username, std::string realname, int sfd); // Contructor offline / online
-		~User();
-		std::string getNickname();
+		void completeInfo(bool status);
 		int command(t_msg *msg);
 };
