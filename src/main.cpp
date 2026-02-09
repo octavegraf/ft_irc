@@ -5,7 +5,7 @@ int main(int argc, char **argv)
 {
 	if (argc != 2 && argc != 3)
 	{
-		std::cout << ERR_INVALID_ARGC << std::endl;
+		std::cerr << ERR_INVALID_ARGC << std::endl;
 		return (1);
 	}
 	std::cout << argv[1];
@@ -13,13 +13,13 @@ int main(int argc, char **argv)
 	{
 		if (!isdigit(i))
 		{
-			std::cout << ERR_NOT_DIGIT << std::endl;
+			std::cerr << ERR_NOT_DIGIT << std::endl;
 			return (1);
 		}
 	}
 	if (atoi(argv[1]) < 1 || atoi(argv[1]) > 65535)
 	{
-		std::cout << ERR_INVALID_PORT << std::endl;
+		std::cerr << ERR_INVALID_PORT << std::endl;
 		return (1);
 	}
 	std::string hostname = "host";
