@@ -9,39 +9,31 @@ Server::Server(char const *port, int const listenSfd, std::string const hostname
 Server::~Server()
 {}
 
-std::string const Server::getPassword() {return (_password);}
+std::string const Server::getHostname() { return (_hostname);}
 
-std::vector<Channel &> Server::getChannels() { return (_channels); }
+std::string const Server::getPassword() { return (_password); }
 
-std::vector<User &> Server::getUsers() {return (_users);}
+std::vector<Channel *> Server::getChannels() { return (_channels); }
+
+std::vector<User *> Server::getUsers() { return (_users);}
+
+int Server::respond(User *user, std::string message)
+{
+	#ifdef DEBUG
+		std::cout << user->getNickname() << "->" << message << std::endl;
+	#endif
+	return (send(user->getFd(), message.c_str(), message.length(), 0));
+}
+
+int Server::respond(std::string nickname, std::string message)
+{
+	User *user = searchUser(nickname, _users);
+	if (!user)
+		return (-1);
+	return (respond(user, message));
+}
 
 int Server::command(t_msg *msg)
 {
 	return (0);
-}
-
-int dispatchCommand(t_msg *msg, Server &server)
-{
-	// I'll do it again, im gonna use the "command.cpp now" @rchanrenous
-	const std::string serverScope[] = {"CAP", "USER"};
-	const std::string channelScope[] = {""};
-	const std::string userScope[] = {"NICK"};
-
-	for (size_t i = 0; i < sizeof(serverScope) / sizeof(std::string); ++i)
-	{
-		if (msg->command == serverScope[i])
-			return (server.command(msg));
-	}
-	for (size_t i = 0; i < sizeof(channelScope) / sizeof(std::string); ++i)
-	{
-		if (msg->command == channelScope[i])
-			return (server.getChannel(channelScope[i]).command(msg));
-	}
-	for (size_t i = 0; i < sizeof(userScope) / sizeof(std::string); ++i)
-	{
-		if (msg->command == userScope[i])
-			return (server.getUser(userScope[i]).command(msg));
-	}
-	std::cerr << "Unknown command: " << msg->command << "." << std::endl;
-	return (1);
 }
