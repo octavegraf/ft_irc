@@ -22,10 +22,10 @@ class Channel
 		std::string _password;
 		std::string _topic;
 		bool _isTopicRestricted;
-		std::vector<User &> _users;
+		std::vector<User *> _users;
 		bool _isWhitelisted;
-		std::vector<User &> _whitelist;
-		std::vector<User &> _operators;
+		std::vector<User *> _whitelist;
+		std::vector<User *> _operators;
 		unsigned int _maxUsers;
 
 		User const &stringToUser(std::string const &nickname);
