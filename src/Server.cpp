@@ -135,3 +135,46 @@ int dispatchCommand(t_msg *msg, Server &server)
 	std::cerr << "Unknown command: " << msg->command << "." << std::endl;
 	return (1);
 }*/
+
+
+void	Server::acceptNewConnections(void)
+{
+	int	client_sfd;
+
+	if (ptr->ai_protocol == 6) // remove TCP code hard-code
+	{
+		client_sfd = accept(sfd, NULL, NULL); // need to retrieve the client ip address?
+		if (client_sfd == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) // no pending incoming connexion request
+			return ;
+		// iterate until no more pending incoming connexion request?
+//		print_sockaddr(&addr, len);
+		if (fcntl(client_sfd, F_SETFL, O_NONBLOCK) == -1)
+		{
+			std::cerr << "fcntl()" << std::endl;
+			throw std::exception();
+		}	
+	}
+	// instantiate new User
+	User	client(client_sfd);
+
+	// add user to server's users list
+	// add new user's fd to server's list of pollfds
+	sfds[n].fd = client_sfd;
+//		sfds[n].events = POLLIN | POLLPRI | POLLOUT;
+	sfds[n].events = POLLIN | POLLOUT;
+	sfds[n].revents = 0;
+	n++;
+
+}
+
+void	Server::fetchNewEvents(void)
+{
+
+}
+
+void	Server::handleNewEvents(void)
+{
+
+}
+
+
