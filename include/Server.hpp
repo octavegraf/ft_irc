@@ -1,9 +1,10 @@
-#ifndef SERVER_HPP
-#define SERVER_HPP
+#pragma once
 
 #include <iostream>
-#include <vector>
+#include <map>
 #include <cstdlib>
+#include <unistd.h>
+#include <netdb.h>
 #include <poll.h>
 #include <sys/socket.h>
 #include <strings.h>
@@ -17,38 +18,41 @@
 class Server
 {
 	private:
-		int const _port;
-		int const _listenSfd; // SFD =  Socket file descriptor
-		struct pollfd _pollfds[CLIENT_LIMIT];
-		std::string const _hostname;
-		std::string const _password;
-		std::vector<Channel *> _channels;
-		std::vector<User *> _users;
+		const int						_port;
+		const std::string				_hostname;
+		const std::string				_password;
+		const int						_listenSfd;
+		std::map<int, struct pollfd>	_pollfds;
+		std::map<std::string, Channel>	_channels; 
+		std::map<int, User *>			_users; // store pointers because Channels will need to point to their users
 
-		int createChannel(std::string const &channelName);
-		int deleteChannel(std::string const &channelName);
-		int connectUser(User &user);
-		int disconnectUser(User &user);
-		int privateMsg(User const &sender, User const &target, std::string const &msg);
-		int joinChannel(User const &user, std::string const &channelName, std::string const &password);
-		int leaveChannel(User const &user, std::string const &channelName);
+		int	createChannel(const std::string& channelName);
+		int	deleteChannel(const std::string& channelName);
+		int	connectUser(User& user);
+		int	disconnectUser(User& user);
+		int	privateMsg(const User& sender, const User& target, const std::string& msg);
+		int	joinChannel(const User& user, const std::string& channelName, const std::string& password);
+		int	leaveChannel(const User& user, const std::string& channelName);
 
 	public:
-		Server(char const *port, int const listenSfd, std::string const hostname);
-		Server(char const *port, int const listenSfd, std::string const hostname, std::string const password);
-		~Server();
+		Server(const char *port);
+		Server(const char *port, const char *password);
+		~Server(); // free Users pointed to by _users
 
 		// getters
-		std::string const getHostname();
-		std::string const getPassword();
-		std::vector<Channel *> getChannels();
-		std::vector<User *> getUsers();
-
+		const std::string& getPassword();
+		const std::string& getHostname();
+		const std::map<std::string, Channel>& getChannels();
+		const std::map<int, User *>& getUsers();
 		int respond(User *user, std::string message);
-		int respond(std::string nickname, std::string message); // alias for simple use
+		int respond(std::string nickname, std::string message);
 		int command(t_msg *msg);
+
+		// exec
+		// signatures in progreess
+		void	acceptNewConnections();
+		void	fetchNewEvents();
+		void	handleNewEvents();
 };
 
-static int dispatchCommand(t_msg *msg, Server &server);
-
-#endif
+//static int dispatchCommand(t_msg *msg, Server &server);

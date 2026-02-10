@@ -1,15 +1,15 @@
-#include "main.hpp"
+
+#include <signal.h>
+#include <exception>
+#include <iostream>
+
+#include "errors.hpp"
 #include "Server.hpp"
 
-int main(int argc, char **argv)
-{
-	if (argc != 2 && argc != 3)
-	{
-		std::cout << ERR_INVALID_ARGC << std::endl;
-		return (1);
-	}
-	std::cout << argv[1];
-	for (int i = 0; !argv[argc - 1][i]; i++)
+bool	interrupt(false);
+int		setup_signal_action(struct sigaction *sigaction);
+
+/*	for (int i = 0; !argv[argc - 1][i]; i++)
 	{
 		if (!isdigit(i))
 		{
@@ -21,12 +21,48 @@ int main(int argc, char **argv)
 	{
 		std::cout << ERR_INVALID_PORT << std::endl;
 		return (1);
+	}*/
+
+
+int	main(int argc, char **argv)
+{
+	if (argc != 2 && argc != 3)
+	{
+		std::cerr << ERR_INVALID_ARGC << std::endl;
+		return (1);
 	}
-	std::string hostname = "host";
-	unsigned int listenSfd = 0; // @rchanrenous need to change this
-	if (argc == 2)
-		Server server(argv[1], listenSfd, hostname);
-	if (argc == 3)
-		Server server(argv[1], listenSfd, hostname, argv[2]);
-	return (0);
+
+	// check inputs
+
+	// init server: fetch socket type + create a socket + bind the socket to the host and port
+	try
+	{
+		if (argc == 3)
+			Server server(argv[1], argv[2]);
+		else
+			Server server(argv[1]);
+
+	}
+	catch (std::exception e)
+	{
+		std::cerr << "Failed to initialize the server." << std::endl;
+		//std::cerr << e.what() << std::endl;
+		return (1);
+	}
+	// set up signal action
+	struct sigaction	sigaction;
+	setup_signal_action(&sigaction);
+
+	// listen routine
+	while (interrupt == false)
+	{
+		// accept connection requests: create new user + update server user list + store user fd in pollfd tab
+		//server.acceptNewConnections();
+
+		// poll the fds to fetch new events
+		//server.fetchNewEvents();
+
+		// iterate on the fds to find events to handle with dispatchCommand()
+		//server.handleNewEvents();
+	}
 }

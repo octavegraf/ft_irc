@@ -1,9 +1,8 @@
 #pragma once
 
-#include <vector>
+#include <map>
 
 #include "parsing.hpp"
-#include "Server.hpp"
 #include "User.hpp"
 
 enum ChannelMode
@@ -21,12 +20,12 @@ class Channel
 		std::string _name;
 		std::string _password;
 		std::string _topic;
-		bool _isTopicRestricted;
-		std::vector<User *> _users;
-		bool _isWhitelisted;
-		std::vector<User *> _whitelist;
-		std::vector<User *> _operators;
+		std::map<int, User *> _users;
+		std::map<int, User *> _whitelist;
+		std::map<int, User *> _operators;
 		unsigned int _maxUsers;
+		bool _isTopicRestricted;
+		bool _isWhitelisted;
 
 		User const &stringToUser(std::string const &nickname);
 		int changePassword(User const &sender, std::string const &password);
@@ -38,9 +37,10 @@ class Channel
 		int inviteUser(User const &sender, User const &target);
 		int topic(User const &sender, std::string const &param);
 		int changeMode(User const &sender, ChannelMode mode, std::string const &param);
+
 	public:
-		Channel();
-		~Channel();
-		std::string getName();
+		Channel(void);
+		~Channel(void);
+		std::string getName(void);
 		int command(t_msg *msg);
 };

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <vector>
-
 #include "errors.hpp"
 #include "message.hpp"
 #include "Server.hpp"
@@ -10,7 +8,7 @@
 class Server;
 
 // Utils
-User * searchUser(std::string nickname, std::vector<User *> users);
+User * searchUser(std::string nickname, std::map<int, User *> users);
 int dispatchCommand(t_msg *msg, Server &server);
 
 // Server Scope

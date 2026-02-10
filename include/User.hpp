@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Server.hpp"
-
 #include <string>
 #include <sys/socket.h>
+
+#include "message.hpp"
 
 class User
 {
@@ -15,7 +15,8 @@ class User
 		bool _completeInfos;
 
 	public:
-		User(std::string nickname, int sfd);
+		User(const int sfd);
+		User(const std::string& nickname, const std::string& username, const std::string& realname, int sfd); // Contructor offline / online
 		~User();
 
 		// getters
@@ -26,8 +27,8 @@ class User
 
 		// setters
 		int setNickname(std::string const &nickname);
-		int setUsername(std::string const &username);
-		int setRealname(std::string const &realname);
+		void setUsername(std::string const &username);
+		void setRealname(std::string const &realname);
 		void completeInfo(bool status);
 		int command(t_msg *msg);
 };
