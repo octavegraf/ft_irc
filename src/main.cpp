@@ -13,13 +13,13 @@ int		setup_signal_action(struct sigaction *sigaction);
 	{
 		if (!isdigit(i))
 		{
-			std::cout << ERR_NOT_DIGIT << std::endl;
+			std::cerr << ERR_NOT_DIGIT << std::endl;
 			return (1);
 		}
 	}
 	if (atoi(argv[1]) < 1 || atoi(argv[1]) > 65535)
 	{
-		std::cout << ERR_INVALID_PORT << std::endl;
+		std::cerr << ERR_INVALID_PORT << std::endl;
 		return (1);
 	}*/
 
