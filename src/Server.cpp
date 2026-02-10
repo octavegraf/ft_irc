@@ -64,28 +64,24 @@ static int getListenSfd(const char *port)
 Server::Server(const char *port, const char *password) :
 	_port(atoi(port)), _password(password), _listenSfd(getListenSfd(port)), _pollfds(), _channels(), _users() 
 {
-	for (int i=0; i < CLIENT_LIMIT; i++)
-	{
-		this->_pollfds[i].fd = -1;
-		this->_pollfds[i].events = 0;
-		this->_pollfds[i].revents = 0;
-	}
-
 }
 
 Server::Server(const char *port) :
 	_port(atoi(port)), _password(""), _listenSfd(getListenSfd(port)), _pollfds(), _channels(), _users() 
 {
-	for (int i=0; i < CLIENT_LIMIT; i++)
-	{
-		this->_pollfds[i].fd = -1;
-		this->_pollfds[i].events = 0;
-		this->_pollfds[i].revents = 0;
-	}
 }
 
 Server::~Server(void)
 {
+	for (std::vector<struct pollfd>::iterator it=this->_pollfds.begin(); it != this->_pollfds.end(); it++)	
+	{
+		std::cout << "close fd: " << it->fd << std::endl;
+		close(it->fd);
+	}
+	for (std::map<int, User *>::iterator it=this->_users.begin(); it != this->_users.end(); it++)	
+		delete it->second;
+	close(this->_listenSfd);
+
 }
 
 const std::string&	Server::getPassword(void)
@@ -136,36 +132,36 @@ int dispatchCommand(t_msg *msg, Server &server)
 	return (1);
 }*/
 
-/*
 void	Server::acceptNewConnections(void)
 {
 	int	client_sfd;
 
-	if (ptr->ai_protocol == 6) // remove TCP code hard-code
+	client_sfd = accept(this->_listenSfd, NULL, NULL); // need to retrieve the client ip address?
+	if (client_sfd == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) // no pending incoming connexion request
+		return ;
+	// iterate until no more pending incoming connexion request?
+	else if (client_sfd == -1)
 	{
-		client_sfd = accept(sfd, NULL, NULL); // need to retrieve the client ip address?
-		if (client_sfd == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) // no pending incoming connexion request
-			return ;
-		// iterate until no more pending incoming connexion request?
-//		print_sockaddr(&addr, len);
-		if (fcntl(client_sfd, F_SETFL, O_NONBLOCK) == -1) // useful?
-		{
-			std::cerr << "fcntl()" << std::endl;
-			throw std::exception();
-		}	
+		std::cerr << "accept()" << std::endl;
+		throw std::exception();
 	}
-	// instantiate new User
-	User	client(client_sfd);
-
-	// add user to server's users list
+	//print_sockaddr(&addr, len);
+	if (fcntl(client_sfd, F_SETFL, O_NONBLOCK) == -1) // useful?
+	{
+		std::cerr << "fcntl()" << std::endl;
+		throw std::exception();
+	}	
+	std::cout << "listening: " << client_sfd << std::endl;
+	// instantiate new User and add User to server's Users list
+	this->_users[client_sfd] = new User(client_sfd);
 	// add new user's fd to server's list of pollfds
-	sfds[n].fd = client_sfd;
-//		sfds[n].events = POLLIN | POLLPRI | POLLOUT;
-	sfds[n].events = POLLIN | POLLOUT;
-	sfds[n].revents = 0;
-	n++;
-
-}*/
+	this->_pollfds.push_back(pollfd());
+	std::cout << this->_pollfds.size() << std::endl;
+	struct pollfd&	pollfd = this->_pollfds.back();
+	pollfd.fd = client_sfd;
+	pollfd.events = POLLIN | POLLOUT;
+	pollfd.revents = 0;
+}
 
 void	Server::fetchNewEvents(void)
 {
@@ -176,5 +172,3 @@ void	Server::handleNewEvents(void)
 {
 
 }
-
-

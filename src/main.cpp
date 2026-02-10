@@ -6,7 +6,7 @@
 /*   By: rchan-re <rchan-re@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 15:59:01 by rchan-re          #+#    #+#             */
-/*   Updated: 2026/02/10 13:43:13 by rchan-re         ###   ########.fr       */
+/*   Updated: 2026/02/10 17:37:39 by rchan-re         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,12 +45,13 @@ int	main(int argc, char **argv)
 	// check inputs
 
 	// init server: fetch socket type + create a socket + bind the socket to the host and port
+	Server	*server;
 	try
 	{
 		if (argc == 3)
-			Server	server(argv[1], argv[2]);
+			server = new Server(argv[1], argv[2]);
 		else
-			Server	server(argv[1]);
+			server = new Server(argv[1]);
 
 	}
 	catch (std::exception e)
@@ -66,13 +67,21 @@ int	main(int argc, char **argv)
 	// listen routine
 	while (interrupt == false)
 	{
-		// accept connection requests: create new user + update server user list + store user fd in pollfd tab
-		//server.acceptNewConnections();
+		try
+		{
+			// accept connection requests: create new user + update server user list + store user fd in pollfd tab
+			server->acceptNewConnections();
 
-		// poll the fds to fetch new events
-		//server.fetchNewEvents();
+			// poll the fds to fetch new events
+			//server.fetchNewEvents();
 
-		// iterate on the fds to find events to handle with dispatchCommand()
-		//server.handleNewEvents();
+			// iterate on the fds to find events to handle with dispatchCommand()
+			//server.handleNewEvents();
+		}
+		catch (std::exception e)
+		{
+			interrupt = false;	
+		}
 	}
+	delete server;
 }

@@ -2,6 +2,7 @@
 
 #include <string>
 #include <sys/socket.h>
+#include "message.hpp"
 
 class User
 {

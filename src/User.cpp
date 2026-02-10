@@ -5,6 +5,10 @@ User::User(const int sfd) :
 {
 }
 
+User::~User(void)
+{
+}
+
 void	User::setNickname(const std::string& nickname)
 {
 	this->_nickname = nickname;
@@ -20,12 +24,13 @@ void	User::setRealname(const std::string& realname)
 	this->_realname = realname;
 }
 
-std::string User::getNickname()
+const std::string& User::getNickname(void)
 {
 	return (_nickname);
 }
 
 int User::command(t_msg *msg)
 {
+	(void)msg;
 	return (0);
 }

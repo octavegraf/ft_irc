@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include "iostream"
 
 typedef struct	s_msg

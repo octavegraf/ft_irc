@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <poll.h>
+#include <errno.h>
+#include <fcntl.h>
 
 #include "Channel.hpp"
 #include "User.hpp"
@@ -18,7 +20,7 @@ class Server
 		const int						_port;
 		const std::string				_password;
 		const int						_listenSfd;
-		std::map<int, struct pollfd>	_pollfds;
+		std::vector<struct pollfd>		_pollfds;
 		std::map<std::string, Channel>	_channels; 
 		std::map<int, User *>			_users; // store pointers because Channels will need to point to their users
 
