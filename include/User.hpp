@@ -1,26 +1,28 @@
 #pragma once
 
-#include "Server.hpp"
-
 #include <string>
 #include <sys/socket.h>
 
 class User
 {
 	private:
-		std::string _nickname; // Server unique identifier
-		std::string _username; // Not unique, server identifier
-		std::string _realname; // For real name, contains spaces
-		int _sfd; // Socket file descriptor
+		std::string	_nickname; // Server unique identifier
+		std::string	_username; // Not unique, server identifier
+		std::string	_realname; // For real name, contains spaces
+		const int	_sfd; // unique
 		// bool _isOnline;
 
-		int setNickname(std::string const &nickname);
-		int setUsername(std::string const &username);
-		int setRealname(std::string const &realname);
-
 	public:
-		User(std::string nickname, std::string username, std::string realname, int sfd); // Contructor offline / online
-		~User();
-		std::string getNickname();
+		User(const int sfd); // Contructor offline / online
+		User(const std::string& nickname, const std::string& username, const std::string& realname, int sfd); // Contructor offline / online
+		~User(void);
+
 		int command(t_msg *msg);
+
+		// setters; check if names are mutable or not
+		void	setNickname(const std::string& nickname);
+		void	setUsername(const std::string& username);
+		void	setRealname(const std::string& realname);
+
+		const std::string&	getNickname(void);
 };

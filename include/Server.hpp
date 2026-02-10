@@ -1,7 +1,7 @@
 #pragma once
 
 #include <iostream>
-#include <vector>
+#include <map>
 #include <cstdlib>
 #include <unistd.h>
 #include <netdb.h>
@@ -15,35 +15,35 @@
 class Server
 {
 	private:
-		const int				_port;
-		const std::string		_password;
-		const int				_listenSfd; // SFD =  Socket file descriptor
-		struct pollfd			_pollfds[CLIENT_LIMIT];
-		std::vector<Channel *>	_channels;
-		std::vector<User *>		_users;
+		const int						_port;
+		const std::string				_password;
+		const int						_listenSfd;
+		std::map<int, struct pollfd>	_pollfds;
+		std::map<std::string, Channel>	_channels; 
+		std::map<int, User *>			_users; // store pointers because Channels will need to point to their users
 
-		int createChannel(std::string const &channelName);
-		int deleteChannel(std::string const &channelName);
-		int connectUser(User &user);
-		int disconnectUser(User &user);
-		int privateMsg(User const &sender, User const &target, std::string const &msg);
-		int joinChannel(User const &user, std::string const &channelName, std::string const &password);
-		int leaveChannel(User const &user, std::string const &channelName);
+		int	createChannel(const std::string& channelName);
+		int	deleteChannel(const std::string& channelName);
+		int	connectUser(User& user);
+		int	disconnectUser(User& user);
+		int	privateMsg(const User& sender, const User& target, const std::string& msg);
+		int	joinChannel(const User& user, const std::string& channelName, const std::string& password);
+		int	leaveChannel(const User& user, const std::string& channelName);
 
 	public:
 		Server(const char *port);
 		Server(const char *port, const char *password);
-		~Server(void);
+		~Server(void); // free Users pointed to by _users
 
 		// getters
-		const std::string				getPassword(void);
-		const std::vector<Channel *>	&getChannels(void);
-		const std::vector<User *>		&getUsers(void);
+		const std::string&						getPassword(void);
+		const std::map<std::string, Channel>&	getChannels(void);
+		const std::map<int, User *>&			getUsers(void);
 
 		int command(t_msg *msg);
 
 		// exec
-		// singatures in progreess
+		// signatures in progreess
 		void	acceptNewConnections(void);
 		void	fetchNewEvents(void);
 		void	handleNewEvents(void);

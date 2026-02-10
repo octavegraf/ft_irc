@@ -88,17 +88,17 @@ Server::~Server(void)
 {
 }
 
-const std::string	Server::getPassword()
+const std::string&	Server::getPassword(void)
 {
 	return (_password);
 }
 
-const std::vector<Channel *>	&Server::getChannels(void)
+const std::map<std::string, Channel>&	Server::getChannels(void)
 {
 	return (_channels);
 }
 
-const std::vector<User *>	&Server::getUsers(void)
+const std::map<int, User *>&	Server::getUsers(void)
 {
 	return (_users);
 }
@@ -136,7 +136,7 @@ int dispatchCommand(t_msg *msg, Server &server)
 	return (1);
 }*/
 
-
+/*
 void	Server::acceptNewConnections(void)
 {
 	int	client_sfd;
@@ -148,7 +148,7 @@ void	Server::acceptNewConnections(void)
 			return ;
 		// iterate until no more pending incoming connexion request?
 //		print_sockaddr(&addr, len);
-		if (fcntl(client_sfd, F_SETFL, O_NONBLOCK) == -1)
+		if (fcntl(client_sfd, F_SETFL, O_NONBLOCK) == -1) // useful?
 		{
 			std::cerr << "fcntl()" << std::endl;
 			throw std::exception();
@@ -165,7 +165,7 @@ void	Server::acceptNewConnections(void)
 	sfds[n].revents = 0;
 	n++;
 
-}
+}*/
 
 void	Server::fetchNewEvents(void)
 {

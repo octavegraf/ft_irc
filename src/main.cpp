@@ -6,7 +6,7 @@
 /*   By: rchan-re <rchan-re@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/02/05 15:59:01 by rchan-re          #+#    #+#             */
-/*   Updated: 2026/02/09 16:18:55 by rchan-re         ###   ########.fr       */
+/*   Updated: 2026/02/10 13:43:13 by rchan-re         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,8 +18,6 @@
 
 bool	interrupt(false);
 int		setup_signal_action(struct sigaction *sigaction);
-
-
 
 /*	for (int i = 0; !argv[argc - 1][i]; i++)
 	{
