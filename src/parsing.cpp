@@ -1,5 +1,4 @@
 #include "parsing.hpp"
-#include <iostream>
 
 t_msg *parsing(char *raw_msg, t_msg *msg)
 {

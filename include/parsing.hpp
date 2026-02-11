@@ -2,7 +2,9 @@
 
 #include <string>
 #include <climits>
+#include <iostream>
 
+#include "colors.hpp"
 #include "message.hpp"
 
 t_msg *parsing(char *raw_msg, t_msg *msg);

@@ -8,7 +8,7 @@ User *searchUser(std::string nickname, std::map<int, User *> users)
 			return (it->second);
 	}
 	#ifdef DEBUG
-		std::cerr << ERR_USR_NOT_FOUND << std::endl;
+		std::cerr << "@octavegraf replace" << std::endl;
 	#endif
 	return (NULL);
 }
@@ -89,6 +89,7 @@ int user(t_msg *msg, Server &server, int sfd)
 	else
 	{
 		User *newUser = new User(sfd);
+		newUser->setNickname(msg->nickname);
 		newUser->setUsername(msg->params[0]);
 		newUser->setRealname(msg->params[3]);
 		if (!server.addUser(newUser))
