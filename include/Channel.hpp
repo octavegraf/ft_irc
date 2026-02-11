@@ -21,12 +21,12 @@ class Channel
 		std::string _name;
 		std::string _password;
 		std::string _topic;
-		std::map<int, User *> _users;
-		std::map<int, User *> _whitelist;
-		std::map<int, User *> _operators;
 		unsigned int _maxUsers;
 		bool _isTopicRestricted;
 		bool _isWhitelisted;
+		std::map<int, User *> _users;
+		std::map<int, User *> _whitelist;
+		std::map<int, User *> _operators;
 
 		User const &stringToUser(std::string const &nickname);
 		int changePassword(User const &sender, std::string const &password);
@@ -39,9 +39,12 @@ class Channel
 		int topic(User const &sender, std::string const &param);
 		int changeMode(User const &sender, ChannelMode mode, std::string const &param);
 
+		friend std::ostream&	operator<<(std::ostream& os, const Channel& channel);
+		friend std::ostream& operator<<(std::ostream& os, const std::map<std::string, Channel>& channels);
+
 	public:
 		Channel(void);
 		~Channel(void);
-		std::string getName(void);
+		const std::string& getName(void) const;
 		int command(t_msg *msg);
 };

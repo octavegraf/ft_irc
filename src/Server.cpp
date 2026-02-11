@@ -1,18 +1,30 @@
 #include "Server.hpp"
 #include "commands.hpp"
 
-const std::string& Server::getHostname() { return (_hostname);}
+const std::string& Server::getHostname() const
+{
+	return (this->_hostname);
+}
 
-const std::string& Server::getPassword() { return (_password); }
+const std::string& Server::getPassword() const
+{
+	return (this->_password);
+}
 
-const std::map<std::string, Channel>& Server::getChannels() { return (_channels); }
+const std::map<std::string, Channel>& Server::getChannels() const
+{
+	return (this->_channels);
+}
 
-const std::map<int, User *>& Server::getUsers() { return (_users); }
+const std::map<int, User *>& Server::getUsers() const
+{
+	return (this->_users);
+}
 
 int Server::addUser(User *user)
 {
 	#ifdef DEBUG
-		std::cout << "Adding user: " << user->getNickname() << std::endl;
+		std::cerr << "Adding user: " << user->getNickname() << std::endl;
 	#endif
 	_users.insert(std::pair<int, User *>(user->getFd(), user));
 	return (0);
@@ -21,7 +33,7 @@ int Server::addUser(User *user)
 int Server::removeUser(User *user)
 {
 	#ifdef DEBUG
-		std::cout << "Removing user: " << user->getNickname() << std::endl;
+		std::cerr << "Removing user: " << user->getNickname() << std::endl;
 	#endif
 	_users.erase(user->getFd());
 	return (0);
@@ -30,7 +42,7 @@ int Server::removeUser(User *user)
 int Server::respond(User *user, std::string message)
 {
 	#ifdef DEBUG
-		std::cout << user->getNickname() << "->" << message << std::endl;
+		std::cerr << user->getNickname() << "->" << message << std::endl;
 	#endif
 	return (send(user->getFd(), message.c_str(), message.length(), 0));
 }
@@ -130,7 +142,9 @@ Server::~Server(void)
 	{
 		if (this->_pollfds[i].fd != -1)
 		{
-			std::cout << "close fd: " << this->_pollfds[i].fd << std::endl;
+#ifdef DEBUG
+			std::cerr << "close fd: " << this->_pollfds[i].fd << std::endl;
+#endif
 			close(this->_pollfds[i].fd);
 		}
 	}
@@ -202,7 +216,7 @@ void	Server::acceptNewConnections(void)
 	}
 	if (this->_nbUsers >= CLIENT_LIMIT)
 	{
-		std::cout << "Connexion rejected: maximum user limit reached" << std::endl; 
+		std::cerr << "Connexion rejected: maximum user limit reached" << std::endl; 
 		close(client_sfd);
 		return ;
 	}
@@ -213,9 +227,14 @@ void	Server::acceptNewConnections(void)
 		std::cerr << "fcntl()" << std::endl;
 		throw std::exception();
 	}	
-	std::cout << "listening: " << client_sfd << std::endl;
+#ifdef DEBUG
+	std::cerr << "listening: " << client_sfd << std::endl;
+#endif
 	// instantiate new User and add User to server's Users list
 	this->_users[client_sfd] = new User(client_sfd);
+#ifdef DEBUG
+	std::cerr << "Adding new user to Server: " << std::endl << this->_users[client_sfd];
+#endif
 	// add new user's fd to server's list of pollfds
 	this->addPollfd(client_sfd);
 }
@@ -239,7 +258,7 @@ void	Server::handleNewEvents(void)
 	for (int i = 0; i < CLIENT_LIMIT && handled < nb_events; i++)
 	{
 		// pending incoming message
-		if ((this->_pollfds[i].revents & POLLIN) == POLLIN)
+		if (this->_pollfds[i].fd != -1 && (this->_pollfds[i].revents & POLLIN) == POLLIN)
 		{
 			// get bytes
 			std::string	text("");
@@ -247,19 +266,53 @@ void	Server::handleNewEvents(void)
 			while (nbytes > 0)
 			{
 				text.append(buffer, nbytes);
-				nbytes = recv(this->_pollfds[i].fd, buffer, BUFFER_SIZE, MSG_WAITALL);
+				nbytes = recv(this->_pollfds[i].fd, buffer, BUFFER_SIZE, 0);
 			}
 			if (nbytes == -1 && (errno != EAGAIN && errno != EWOULDBLOCK))
 			{
 				std::cerr << "recv()" << std::endl;
 				throw std::exception();
 			}
+#ifdef DEBUF
+			std::cerr << "text: " << text << std::endl;
+			std::cerr << "from user: " << std::endl << this->_users[this->_pollfds[i].fd].second;
+#endif
 			// get msg
-			t_msg	msg;
-			parsing(text.c_str(), &msg);
+//			t_msg	msg;
+//			parsing(text.c_str(), &msg);
 			// exec message
 			//dispatchCommand(&msg, *this);
 			handled += 1;
 		}
 	}
+}
+
+void	Server::printPollfds(void) const
+{
+	for (int i=0; i<CLIENT_LIMIT; i++)
+	{
+		if (this->_pollfds[i].fd != -1)
+		{
+			std::cerr << "\t*fd:" << this->_pollfds[i].fd << std::endl;
+			std::cerr << "\tevents: " << this->_pollfds[i].events << std::endl;
+			std::cerr << "\trevents: " << this->_pollfds[i].revents << std::endl;
+		}
+	}
+}
+
+std::ostream&	operator<<(std::ostream& os, const Server& server)
+{
+	os << "=============" << std::endl;
+	os << "SERVER:" << std::endl;
+	os << "\tport:" << server._port << std::endl;
+	os << "\thostname:" << server._hostname << std::endl;
+	os << "\tpassword:" << server._password << std::endl;
+	os << "\tlistenSfd:" << server._listenSfd << std::endl;
+	os << "\tnbUsers:" << server._nbUsers << std::endl;
+	os << "\tpollfds:" << std::endl;
+	server.printPollfds();
+	os << "\tusers:" << std::endl << server._users << std::endl;
+	os << "\tchannels:" << std::endl << server._channels << std::endl;
+	os << "=============" << std::endl;
+	return (os);
 }

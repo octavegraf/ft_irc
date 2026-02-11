@@ -52,6 +52,9 @@ int	main(int argc, char **argv)
 	struct sigaction	sigaction;
 	setup_signal_action(&sigaction);
 
+#ifdef DEBUG
+	std::cerr << *server;
+#endif
 	// listen routine
 	while (interrupt == false)
 	{
@@ -60,11 +63,8 @@ int	main(int argc, char **argv)
 			// accept connection requests: create new user + update server user list + store user fd in pollfd tab
 			server->acceptNewConnections();
 
-			// poll the fds to fetch new events
-			//server.fetchNewEvents();
-
 			// iterate on the fds to find events to handle with dispatchCommand()
-			//server.handleNewEvents();
+			server->handleNewEvents();
 		}
 		catch (std::exception e)
 		{

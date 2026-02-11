@@ -37,16 +37,19 @@ class Server
 		int	joinChannel(const User& user, const std::string& channelName, const std::string& password);
 		int	leaveChannel(const User& user, const std::string& channelName);
 
+		void	printPollfds(void) const;
+		friend std::ostream&	operator<<(std::ostream& os, const Server& server);
 	public:
 		Server(const char *port);
 		Server(const char *port, const char *password);
 		~Server(); // free Users pointed to by _users
 
 		// getters
-		const std::string& getPassword();
-		const std::string& getHostname();
-		const std::map<std::string, Channel>& getChannels();
-		const std::map<int, User *>& getUsers();
+		const std::string& getPassword() const;
+		const std::string& getHostname() const;
+		const std::map<std::string, Channel>& getChannels() const;
+		const std::map<int, User *>& getUsers() const;
+
 		int addUser(User *user);
 		int removeUser(User *user);
 		int respond(User *user, std::string message);
@@ -61,3 +64,4 @@ class Server
 };
 
 int dispatchCommand(t_msg *msg, Server &server);
+
