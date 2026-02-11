@@ -5,7 +5,7 @@
 #include "Server.hpp"
 #include "User.hpp"
 
-class Server;
+class Server; class User;
 
 // Utils
 User * searchUser(std::string nickname, std::map<int, User *> users);

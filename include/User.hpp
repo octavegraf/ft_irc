@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 
 #include "message.hpp"
+#include "commands.hpp"
 
 class User
 {
@@ -26,7 +27,7 @@ class User
 		int getFd() const ;
 
 		// setters
-		int setNickname(std::string const &nickname);
+		void setNickname(std::string const &nickname);
 		void setUsername(std::string const &username);
 		void setRealname(std::string const &realname);
 		void completeInfo(bool status);

@@ -3,7 +3,9 @@
 #include <map>
 
 #include "parsing.hpp"
-#include "User.hpp"
+
+
+class User;
 
 enum ChannelMode
 {

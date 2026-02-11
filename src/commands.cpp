@@ -1,11 +1,11 @@
 #include "commands.hpp"
 
-User *searchUser(std::string nickname, std::vector<User *> users)
+User *searchUser(std::string nickname, std::map<int, User *> users)
 {
-	for (int i = 0; i < users.size(); i++)
+	for (std::map<int, User *>::iterator it = users.begin(); it != users.end(); ++it)
 	{
-		if (users[i]->getNickname() == nickname)
-			return (users[i]);
+		if (it->second->getNickname() == nickname)
+			return (it->second);
 	}
 	#ifdef DEBUG
 		std::cerr << ERR_USR_NOT_FOUND << std::endl;
@@ -33,15 +33,16 @@ int dispatchCommand(t_msg *msg, Server &server)
 				case 4:
 					return (privmsg(msg, server));
 				default:
-					return (server.respond(msg->nickname, ERR_UNKNOWNCOMMAND(server.getHostname(), msg->nickname, msg->command)));
+					break;
 			}
 		}
 	}
+	return (server.respond(msg->nickname, ERR_UNKNOWNCOMMAND(server.getHostname(), msg->nickname, msg->command)));
 }
 
 int cap(t_msg *msg, Server &server)
 {
-	return (server.respond(msg->nickname, CAP(server.getHostname(), msg->nickname)));
+	return (server.respond(msg->nickname,  CAP(server.getHostname(), msg->nickname)));
 }
 
 int pass(t_msg *msg, Server &server)
@@ -56,7 +57,7 @@ int pass(t_msg *msg, Server &server)
 
 int nick(t_msg *msg, Server &server)
 {
-	std::vector<User *> users = server.getUsers();
+	std::map<int, User *> users = server.getUsers();
 	if (searchUser(msg->params[0], users))
 		return (server.respond(msg->nickname, ERR_NICKNAMEINUSE(server.getHostname(), msg->nickname, msg->params[0])));
 	else
@@ -79,7 +80,7 @@ int user(t_msg *msg, Server &server, int sfd)
 	if (msg->params.size() < 4)
 		return (server.respond(msg->nickname, ERR_NEEDMOREPARAMS(server.getHostname(), msg->nickname, msg->command)));
 
-	std::vector<User *> users = server.getUsers();
+	std::map<int, User *> users = server.getUsers();
 	User *user = searchUser(msg->nickname, users);
 	if (user)
 	{
@@ -87,12 +88,19 @@ int user(t_msg *msg, Server &server, int sfd)
 	}
 	else
 	{
-		User *newUser = new User(msg->nickname, sfd);
+		User *newUser = new User(sfd);
 		newUser->setUsername(msg->params[0]);
 		newUser->setRealname(msg->params[3]);
-		server.getUsers().push_back(newUser);
-		server.respond(msg->nickname, RPL_WELCOME(server.getHostname(), msg->nickname, newUser->getUsername(), newUser->getRealName()));
-		return (0);
+		if (!server.addUser(newUser))
+		{
+			server.respond(msg->nickname, RPL_WELCOME(server.getHostname(), msg->nickname, newUser->getUsername(), newUser->getRealName()));
+			return (0);
+		}
+		else
+		{
+			delete newUser;
+			return (server.respond(msg->nickname, ERR_ERRONEUSNICKNAME(server.getHostname(), msg->nickname, msg->params[0])));
+		}
 	}
 }
 
@@ -109,11 +117,18 @@ int privmsg(t_msg *msg, Server &server)
 
 int pingpong(t_msg *msg, Server &server)
 {
+	(void)msg;
+	(void)server;
 	// IDK if its for ping @user or test the server. Dont know how to implement it. @octavegraf
+	return (1);
 }
 
 int mode(t_msg *msg, Server &server)
 {
+	(void)msg;
+	(void)server;
+	// @octavegraf TODO
+	return (1);
 }
 
 /*	./a.out localhost 6666

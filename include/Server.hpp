@@ -44,6 +44,8 @@ class Server
 		const std::string& getHostname();
 		const std::map<std::string, Channel>& getChannels();
 		const std::map<int, User *>& getUsers();
+		int addUser(User *user);
+		int removeUser(User *user);
 		int respond(User *user, std::string message);
 		int respond(std::string nickname, std::string message);
 		int command(t_msg *msg);

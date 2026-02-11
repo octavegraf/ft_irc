@@ -8,6 +8,24 @@ const std::map<std::string, Channel>& Server::getChannels() { return (_channels)
 
 const std::map<int, User *>& Server::getUsers() { return (_users); }
 
+int Server::addUser(User *user)
+{
+	#ifdef DEBUG
+		std::cout << "Adding user: " << user->getNickname() << std::endl;
+	#endif
+	_users.insert(std::pair<int, User *>(user->getFd(), user));
+	return (0);
+}
+
+int Server::removeUser(User *user)
+{
+	#ifdef DEBUG
+		std::cout << "Removing user: " << user->getNickname() << std::endl;
+	#endif
+	_users.erase(user->getFd());
+	return (0);
+}
+
 int Server::respond(User *user, std::string message)
 {
 	#ifdef DEBUG
@@ -108,21 +126,6 @@ Server::Server(const char *port) :
 
 Server::~Server(void)
 {
-}
-
-const std::string&	Server::getPassword(void)
-{
-	return (_password);
-}
-
-const std::map<std::string, Channel>&	Server::getChannels(void)
-{
-	return (_channels);
-}
-
-const std::map<int, User *>&	Server::getUsers(void)
-{
-	return (_users);
 }
 
 /*
