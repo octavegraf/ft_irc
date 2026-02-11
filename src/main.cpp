@@ -64,7 +64,7 @@ int	main(int argc, char **argv)
 			//server.fetchNewEvents();
 
 			// iterate on the fds to find events to handle with dispatchCommand()
-			//server.handleNewEvents();
+			server->handleNewEvents();
 		}
 		catch (std::exception e)
 		{

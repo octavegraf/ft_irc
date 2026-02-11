@@ -19,6 +19,8 @@ int	parsing(const char *raw_msg, t_msg *msg)
 		buffer.erase(0, pos + 2);
 		msg_prefix(msg, complete_msg); // Extract prefix
 		msg->command = complete_msg.substr(0, complete_msg.find(' ')); // Extract command
+		if (complete_msg.find(' ') == std::string::npos)
+			return (0);
 		complete_msg.erase(0, complete_msg.find(' ') + 1);
 		msg_params(msg, complete_msg); // Extract parameters
 	}
@@ -52,17 +54,23 @@ void msg_prefix(t_msg *msg, std::string complete_msg)
 
 void msg_params(t_msg *msg, std::string complete_msg)
 {
-	while (true)
+	while (!complete_msg.empty())
 	{
-		if (complete_msg[0] == ':') // Check for trailing parameter
+		// trailing parameter (IRC style : ":text with spaces")
+		if (complete_msg[0] == ':')
 		{
-			complete_msg.erase(0, 1);
-			msg->params.push_back(complete_msg);
-			break ;
+			msg->params.push_back(complete_msg.substr(1));
+			break;
 		}
-		msg->params.push_back(complete_msg.substr(0, complete_msg.find(' ')));
-		complete_msg.erase(0, complete_msg.find(' ') + 1);
-		if (complete_msg.empty())
-			break ;
+		size_t pos = complete_msg.find(' ');
+		if (pos == std::string::npos)
+		{
+			msg->params.push_back(complete_msg);
+			break;
+		}
+		msg->params.push_back(complete_msg.substr(0, pos));
+		complete_msg.erase(0, pos + 1);
+		std::cout << "command: " << msg->command << std::endl;
+		std::cout << "params: " << msg->params[0] << std::endl;
 	}
 }
