@@ -11,8 +11,10 @@
 
 #include "Channel.hpp"
 #include "User.hpp"
+#include "message.hpp"
 
 #define CLIENT_LIMIT 1024
+#define BUFFER_SIZE 1024
 
 class Server
 {
@@ -20,7 +22,8 @@ class Server
 		const int						_port;
 		const std::string				_password;
 		const int						_listenSfd;
-		std::vector<struct pollfd>		_pollfds;
+		struct pollfd					_pollfds[CLIENT_LIMIT];
+		unsigned int					_nbUsers;
 		std::map<std::string, Channel>	_channels; 
 		std::map<int, User *>			_users; // store pointers because Channels will need to point to their users
 
@@ -46,8 +49,9 @@ class Server
 
 		// exec
 		// signatures in progreess
+		void	addPollfd(int client_sfd);
 		void	acceptNewConnections(void);
-		void	fetchNewEvents(void);
+		int		fetchNewEvents(void);
 		void	handleNewEvents(void);
 };
 

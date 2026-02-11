@@ -1,11 +1,9 @@
 #include "parsing.hpp"
 #include <iostream>
 
-t_msg *parsing(char *raw_msg, t_msg *msg)
+int	parsing(const char *raw_msg, t_msg *msg)
 {
 	*msg = t_msg();
-	if (!raw_msg)
-		return (NULL);
 	static std::string buffer;
 	#ifdef DEBUG
 	std::cout << GREY << "Buffer: [" << buffer << "]" << RESET << std::endl;
@@ -13,7 +11,7 @@ t_msg *parsing(char *raw_msg, t_msg *msg)
 	#endif
 	buffer += raw_msg;
 	if (!complete_message(raw_msg))
-		return (NULL);
+		return (1);
 	else
 	{
 		size_t pos = buffer.find("\r\n"); // Search for the end of the message
@@ -24,7 +22,7 @@ t_msg *parsing(char *raw_msg, t_msg *msg)
 		complete_msg.erase(0, complete_msg.find(' ') + 1);
 		msg_params(msg, complete_msg); // Extract parameters
 	}
-	return (msg);
+	return (0);
 }
 
 bool complete_message(std::string raw_msg)

@@ -12,7 +12,6 @@ static void	fill_getaddrinfo_hints(struct addrinfo *hints, int ai_flags, int ai_
 	hints->ai_next = NULL;
 }
 
-
 static int getListenSfd(const char *port)
 {
 	struct addrinfo	hints;
@@ -62,21 +61,36 @@ static int getListenSfd(const char *port)
 }
 
 Server::Server(const char *port, const char *password) :
-	_port(atoi(port)), _password(password), _listenSfd(getListenSfd(port)), _pollfds(), _channels(), _users() 
+	_port(atoi(port)), _password(password), _listenSfd(getListenSfd(port)), _pollfds(), _nbUsers(0), _channels(), _users() 
 {
+	for (int i=0; i < CLIENT_LIMIT; i++)
+	{
+		this->_pollfds[i].fd = -1;
+		this->_pollfds[i].events = 0;
+		this->_pollfds[i].revents = 0;
+	}
 }
 
 Server::Server(const char *port) :
-	_port(atoi(port)), _password(""), _listenSfd(getListenSfd(port)), _pollfds(), _channels(), _users() 
+	_port(atoi(port)), _password(""), _listenSfd(getListenSfd(port)), _pollfds(), _nbUsers(0), _channels(), _users() 
 {
+	for (int i=0; i < CLIENT_LIMIT; i++)
+	{
+		this->_pollfds[i].fd = -1;
+		this->_pollfds[i].events = 0;
+		this->_pollfds[i].revents = 0;
+	}
 }
 
 Server::~Server(void)
 {
-	for (std::vector<struct pollfd>::iterator it=this->_pollfds.begin(); it != this->_pollfds.end(); it++)	
+	for (int i=0; i < CLIENT_LIMIT; i++)
 	{
-		std::cout << "close fd: " << it->fd << std::endl;
-		close(it->fd);
+		if (this->_pollfds[i].fd != -1)
+		{
+			std::cout << "close fd: " << this->_pollfds[i].fd << std::endl;
+			close(this->_pollfds[i].fd);
+		}
 	}
 	for (std::map<int, User *>::iterator it=this->_users.begin(); it != this->_users.end(); it++)	
 		delete it->second;
@@ -132,6 +146,20 @@ int dispatchCommand(t_msg *msg, Server &server)
 	return (1);
 }*/
 
+void	Server::addPollfd(int client_sfd)
+{
+	for (int i=0; i < CLIENT_LIMIT; i++)
+	{
+		if (this->_pollfds[i].fd == -1)
+		{
+			this->_pollfds[i].fd = client_sfd;
+			this->_pollfds[i].events = POLLIN | POLLOUT;
+			this->_pollfds[i].revents = 0;
+			return ;
+		}
+	}
+}
+
 void	Server::acceptNewConnections(void)
 {
 	int	client_sfd;
@@ -145,6 +173,13 @@ void	Server::acceptNewConnections(void)
 		std::cerr << "accept()" << std::endl;
 		throw std::exception();
 	}
+	if (this->_nbUsers >= CLIENT_LIMIT)
+	{
+		std::cout << "Connexion rejected: maximum user limit reached" << std::endl; 
+		close(client_sfd);
+		return ;
+	}
+	this->_nbUsers += 1;
 	//print_sockaddr(&addr, len);
 	if (fcntl(client_sfd, F_SETFL, O_NONBLOCK) == -1) // useful?
 	{
@@ -155,20 +190,49 @@ void	Server::acceptNewConnections(void)
 	// instantiate new User and add User to server's Users list
 	this->_users[client_sfd] = new User(client_sfd);
 	// add new user's fd to server's list of pollfds
-	this->_pollfds.push_back(pollfd());
-	std::cout << this->_pollfds.size() << std::endl;
-	struct pollfd&	pollfd = this->_pollfds.back();
-	pollfd.fd = client_sfd;
-	pollfd.events = POLLIN | POLLOUT;
-	pollfd.revents = 0;
+	this->addPollfd(client_sfd);
 }
 
-void	Server::fetchNewEvents(void)
+int	Server::fetchNewEvents(void)
 {
-
+	int	res_poll = poll(this->_pollfds, this->_nbUsers, 0);
+	if (res_poll == -1)
+	{
+		std::cerr << "poll()" << std::endl;
+		throw std::exception();
+	}
+	return (res_poll);
 }
 
 void	Server::handleNewEvents(void)
 {
-
+	int	nb_events = this->fetchNewEvents();
+	int	handled = 0;
+	char	buffer[BUFFER_SIZE];
+	for (int i = 0; i < CLIENT_LIMIT && handled < nb_events; i++)
+	{
+		// pending incoming message
+		if ((this->_pollfds[i].revents & POLLIN) == POLLIN)
+		{
+			// get bytes
+			std::string	text("");
+			int	nbytes = recv(this->_pollfds[i].fd, buffer, BUFFER_SIZE, MSG_WAITALL);
+			while (nbytes > 0)
+			{
+				text.append(buffer, nbytes);
+				nbytes = recv(this->_pollfds[i].fd, buffer, BUFFER_SIZE, MSG_WAITALL);
+			}
+			if (nbytes == -1 && (errno != EAGAIN && errno != EWOULDBLOCK))
+			{
+				std::cerr << "recv()" << std::endl;
+				throw std::exception();
+			}
+			// get msg
+			t_msg	msg;
+			parsing(text.c_str(), &msg);
+			// exec message
+			//dispatchCommand(&msg, *this);
+			handled += 1;
+		}
+	}
 }
