@@ -1,18 +1,7 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   main.cpp                                           :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: rchan-re <rchan-re@student.42.fr>          +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/02/05 15:59:01 by rchan-re          #+#    #+#             */
-/*   Updated: 2026/02/11 13:58:52 by rchan-re         ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include <signal.h>
 #include <exception>
 #include <iostream>
+
 #include "errors.hpp"
 #include "Server.hpp"
 
@@ -23,13 +12,13 @@ int		setup_signal_action(struct sigaction *sigaction);
 	{
 		if (!isdigit(i))
 		{
-			std::cout << ERR_NOT_DIGIT << std::endl;
+			std::cerr << ERR_NOT_DIGIT << std::endl;
 			return (1);
 		}
 	}
 	if (atoi(argv[1]) < 1 || atoi(argv[1]) > 65535)
 	{
-		std::cout << ERR_INVALID_PORT << std::endl;
+		std::cerr << ERR_INVALID_PORT << std::endl;
 		return (1);
 	}*/
 
@@ -38,7 +27,7 @@ int	main(int argc, char **argv)
 {
 	if (argc != 2 && argc != 3)
 	{
-//		std::cout << ERR_INVALID_ARGC << std::endl;
+		std::cerr << ERR_INVALID_ARGC << std::endl;
 		return (1);
 	}
 
@@ -52,12 +41,11 @@ int	main(int argc, char **argv)
 			server = new Server(argv[1], argv[2]);
 		else
 			server = new Server(argv[1]);
-
 	}
 	catch (std::exception e)
 	{
-		std::cout << "Failed to initialize the server." << std::endl;
-		//std::cout << e.what() << std::endl;
+		std::cerr << "Failed to initialize the server." << std::endl;
+		//std::cerr << e.what() << std::endl;
 		return (1);
 	}
 	// set up signal action

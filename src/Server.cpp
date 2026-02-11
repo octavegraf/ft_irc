@@ -1,4 +1,47 @@
 #include "Server.hpp"
+#include "commands.hpp"
+
+const std::string& Server::getHostname() { return (_hostname);}
+
+const std::string& Server::getPassword() { return (_password); }
+
+const std::map<std::string, Channel>& Server::getChannels() { return (_channels); }
+
+const std::map<int, User *>& Server::getUsers() { return (_users); }
+
+int Server::addUser(User *user)
+{
+	#ifdef DEBUG
+		std::cout << "Adding user: " << user->getNickname() << std::endl;
+	#endif
+	_users.insert(std::pair<int, User *>(user->getFd(), user));
+	return (0);
+}
+
+int Server::removeUser(User *user)
+{
+	#ifdef DEBUG
+		std::cout << "Removing user: " << user->getNickname() << std::endl;
+	#endif
+	_users.erase(user->getFd());
+	return (0);
+}
+
+int Server::respond(User *user, std::string message)
+{
+	#ifdef DEBUG
+		std::cout << user->getNickname() << "->" << message << std::endl;
+	#endif
+	return (send(user->getFd(), message.c_str(), message.length(), 0));
+}
+
+int Server::respond(std::string nickname, std::string message)
+{
+	User *user = searchUser(nickname, _users);
+	if (!user)
+		return (-1);
+	return (respond(user, message));
+}
 
 static void	fill_getaddrinfo_hints(struct addrinfo *hints, int ai_flags, int ai_family, int ai_socktype, int ai_protocol)
 {
@@ -19,7 +62,6 @@ static int getListenSfd(const char *port)
 	struct addrinfo	*ptr;
 	int				val;
 	int				sfd;
-
 	fill_getaddrinfo_hints(&hints, 0, AF_UNSPEC, SOCK_STREAM, 6); // remove TCP code hard-code
 	val = getaddrinfo("localhost", port, &hints, &res);
 	if (val != 0)
@@ -96,21 +138,6 @@ Server::~Server(void)
 		delete it->second;
 	close(this->_listenSfd);
 
-}
-
-const std::string&	Server::getPassword(void)
-{
-	return (_password);
-}
-
-const std::map<std::string, Channel>&	Server::getChannels(void)
-{
-	return (_channels);
-}
-
-const std::map<int, User *>&	Server::getUsers(void)
-{
-	return (_users);
 }
 
 /*

@@ -2,6 +2,7 @@
 
 #include <vector>
 #include "iostream"
+#include <vector>
 
 typedef struct	s_msg
 {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <string>
 
 #include "parsing.hpp"
 #include "User.hpp"
@@ -17,15 +18,15 @@ enum ChannelMode
 class Channel
 {
 	private:
-		std::string						_name;
-		std::string						_password;
-		std::string						_topic;
-		std::map<int, User *>			_users;
-		std::map<int, User *>			_whitelist;
-		std::map<int, User *>			_operators;
-		//unsigned int					_maxUsers;
-		bool							_isTopicRestricted;
-		bool							_isWhitelisted;
+		std::string _name;
+		std::string _password;
+		std::string _topic;
+		std::map<int, User *> _users;
+		std::map<int, User *> _whitelist;
+		std::map<int, User *> _operators;
+		unsigned int _maxUsers;
+		bool _isTopicRestricted;
+		bool _isWhitelisted;
 
 		User const &stringToUser(std::string const &nickname);
 		int changePassword(User const &sender, std::string const &password);

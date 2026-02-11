@@ -1,7 +1,7 @@
 CC					=	c++
 CFLAGS				=	-Wall -Wextra -Werror -Wshadow -std=c++98 -MMD -g3
 NAME				=	ircserv
-FILES				=	main setup_signal_action Server Channel User parsing
+FILES				=	main parsing Server User Channel commands setup_signal_action
 SRC					=	$(addprefix src/, $(addsuffix .cpp, $(FILES)))
 INCLUDES			=	-Iinclude
 OBJ_FOLDER			=	obj/

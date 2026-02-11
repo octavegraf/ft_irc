@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <map>
+#include <string>
 #include <cstdlib>
 #include <unistd.h>
 #include <netdb.h>
@@ -20,6 +21,7 @@ class Server
 {
 	private:
 		const int						_port;
+		const std::string				_hostname;
 		const std::string				_password;
 		const int						_listenSfd;
 		struct pollfd					_pollfds[CLIENT_LIMIT];
@@ -38,21 +40,24 @@ class Server
 	public:
 		Server(const char *port);
 		Server(const char *port, const char *password);
-		~Server(void); // free Users pointed to by _users
+		~Server(); // free Users pointed to by _users
 
 		// getters
-		const std::string&						getPassword(void);
-		const std::map<std::string, Channel>&	getChannels(void);
-		const std::map<int, User *>&			getUsers(void);
-
+		const std::string& getPassword();
+		const std::string& getHostname();
+		const std::map<std::string, Channel>& getChannels();
+		const std::map<int, User *>& getUsers();
+		int addUser(User *user);
+		int removeUser(User *user);
+		int respond(User *user, std::string message);
+		int respond(std::string nickname, std::string message);
 		int command(t_msg *msg);
 
 		// exec
-		// signatures in progreess
 		void	addPollfd(int client_sfd);
 		void	acceptNewConnections(void);
 		int		fetchNewEvents(void);
 		void	handleNewEvents(void);
 };
 
-//static int dispatchCommand(t_msg *msg, Server &server);
+int dispatchCommand(t_msg *msg, Server &server);
