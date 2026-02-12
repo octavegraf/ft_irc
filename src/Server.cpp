@@ -273,15 +273,14 @@ void	Server::handleNewEvents(void)
 				std::cerr << "recv()" << std::endl;
 				throw std::exception();
 			}
-#ifdef DEBUF
+#ifdef DEBUG
 			std::cerr << "text: " << text << std::endl;
-			std::cerr << "from user: " << std::endl << this->_users[this->_pollfds[i].fd].second;
+			std::cerr << "from user: " << std::endl << *(this->_users[this->_pollfds[i].fd]);
 #endif
-			// get msg
-//			t_msg	msg;
-//			parsing(text.c_str(), &msg);
+			t_msg	msg;
+			parsing(text.c_str(), &msg);
 			// exec message
-			//dispatchCommand(&msg, *this);
+			dispatchCommand(&msg, *this);
 			handled += 1;
 		}
 	}
