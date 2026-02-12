@@ -22,7 +22,7 @@
 #define ERR_ALREADYREGISTERED(servername, client) (":" + servername + " 462 " + client + " :Unauthorized command (already registered)")
 
 // CAP
-#define CAP(servername, nickname) (":" + servername + " CAP LS :")
+#define CAP(servername, nickname) (":" + servername + " CAP LS :") // NOT IMPLEMENTED
 
 // PASS
 // No response if the password is correct

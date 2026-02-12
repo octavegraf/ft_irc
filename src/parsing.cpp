@@ -5,10 +5,6 @@ int	parsing(const char *raw_msg, t_msg *msg)
 {
 	*msg = t_msg();
 	static std::string buffer;
-	#ifdef DEBUG
-	std::cout << GREY << "Buffer: [" << buffer << "]" << RESET << std::endl;
-	std::cout << GREY << "Raw message received: [" << raw_msg << "]" << RESET << std::endl;
-	#endif
 	buffer += raw_msg;
 	if (!complete_message(raw_msg))
 		return (1);
@@ -70,7 +66,5 @@ void msg_params(t_msg *msg, std::string complete_msg)
 		}
 		msg->params.push_back(complete_msg.substr(0, pos));
 		complete_msg.erase(0, pos + 1);
-		std::cout << "command: " << msg->command << std::endl;
-		std::cout << "params: " << msg->params[0] << std::endl;
 	}
 }

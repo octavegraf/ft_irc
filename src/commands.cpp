@@ -8,7 +8,7 @@ User *searchUser(std::string nickname, std::map<int, User *> users)
 			return (it->second);
 	}
 	#ifdef DEBUG
-		std::cerr << "@octavegraf replace" << std::endl;
+		std::cerr << "User " << nickname << " found." << std::endl;
 	#endif
 	return (NULL);
 }
@@ -20,6 +20,7 @@ int dispatchCommand(t_msg *msg, Server &server)
 	{
 		if (msg->command == commandsList[i])
 		{
+			std::cout << "Executing command: " << msg->command << std::endl;
 			switch (i)
 			{
 				case 0:
@@ -42,7 +43,8 @@ int dispatchCommand(t_msg *msg, Server &server)
 
 int cap(t_msg *msg, Server &server)
 {
-	return (server.respond(msg->nickname,  CAP(server.getHostname(), msg->nickname)));
+	// return (server.respond(msg->nickname, CAP(server.getHostname(), msg->nickname)));
+	(void)msg; (void)server; return (0);
 }
 
 int pass(t_msg *msg, Server &server)
@@ -55,7 +57,7 @@ int pass(t_msg *msg, Server &server)
 		return (0);
 }
 
-int nick(t_msg *msg, Server &server)
+int nick(t_msg *msg, Server &server, int sfd)
 {
 	std::map<int, User *> users = server.getUsers();
 	if (searchUser(msg->params[0], users))

@@ -272,16 +272,22 @@ void	Server::handleNewEvents(void)
 			{
 				throw std::exception();
 			}
-#ifdef DEBUF
-			std::cerr << "text: " << text << std::endl;
-			std::cerr << "from user: " << std::endl << this->_users[this->_pollfds[i].fd].second;
-#endif
+			#ifdef DEBUG
+						std::cerr << "text: " << text << std::endl;
+						std::cerr << "from user: " << std::endl << *(this->_users[this->_pollfds[i].fd]);
+			#endif
 			// get msg
-//			t_msg	msg;
-//			parsing(text.c_str(), &msg);
-			// exec message
-			//dispatchCommand(&msg, *this);
-			handled += 1;
+			t_msg msg;
+			while (parsing(text.c_str(), &msg) == 0)
+			{
+				#ifdef DEBUG
+				std::cerr << msg << std::endl;
+				#endif
+				// exec message
+				dispatchCommand(&msg, *this);
+				handled += 1;
+				text = "";
+			}
 		}
 	}
 }
