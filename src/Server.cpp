@@ -270,7 +270,6 @@ void	Server::handleNewEvents(void)
 			}
 			if (nbytes == -1 && (errno != EAGAIN && errno != EWOULDBLOCK))
 			{
-				std::cerr << "recv()" << std::endl;
 				throw std::exception();
 			}
 #ifdef DEBUG
