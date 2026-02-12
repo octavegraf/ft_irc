@@ -228,12 +228,12 @@ void	Server::acceptNewConnections(void)
 		throw std::exception();
 	}	
 #ifdef DEBUG
-	std::cerr << "listening: " << client_sfd << std::endl;
+	std::cerr << "Now listening on sfd: " << client_sfd << std::endl;
 #endif
 	// instantiate new User and add User to server's Users list
 	this->_users[client_sfd] = new User(client_sfd);
 #ifdef DEBUG
-	std::cerr << "Adding new user to Server: " << std::endl << this->_users[client_sfd];
+	std::cerr << "Adding new user to Server: " << std::endl << *(this->_users[client_sfd]);
 #endif
 	// add new user's fd to server's list of pollfds
 	this->addPollfd(client_sfd);
