@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <map>
 #include <sys/socket.h>
 
 #include "message.hpp"
@@ -13,6 +14,9 @@ class User
 		std::string _realname; // For real name, contains spaces
 		int _sfd; // Socket file descriptor
 		bool _completeInfos;
+
+		friend std::ostream&	operator<<(std::ostream& os, const User& user);
+		friend std::ostream&	operator<<(std::ostream& os, const std::map<int, User *>& users);
 
 	public:
 		User(const int sfd);

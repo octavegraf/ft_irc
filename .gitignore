@@ -6,4 +6,5 @@ test
 tests
 obj/
 ircserv
+debug_ircserv
 tags
