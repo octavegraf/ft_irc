@@ -11,8 +11,8 @@ typedef struct	s_msg
 	std::string hostname;
 	std::string command;
 	std::vector<std::string> params;
-
-	s_msg() : nickname(""), username(""), hostname(""), command(""), params() {}
+	int sfd;
+	s_msg() : nickname(""), username(""), hostname(""), command(""), params(), sfd(0) {}
 } t_msg;
 
 inline std::ostream& operator<<(std::ostream& os, const t_msg& msg)

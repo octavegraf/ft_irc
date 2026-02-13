@@ -11,7 +11,7 @@ User *searchUser(std::string nickname, std::map<int, User *> users);
 // Server Scope
 int cap(t_msg *msg, Server &server);
 int pass(t_msg *msg, Server &server);
-int user(t_msg *msg, Server &server, int sfd);
+int user(t_msg *msg, Server &server);
 int privmsg(t_msg *msg, Server &server);
 int pingpong(t_msg *msg, Server &server);
 

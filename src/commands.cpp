@@ -57,7 +57,7 @@ int pass(t_msg *msg, Server &server)
 		return (0);
 }
 
-int nick(t_msg *msg, Server &server, int sfd)
+int nick(t_msg *msg, Server &server)
 {
 	std::map<int, User *> users = server.getUsers();
 	if (searchUser(msg->params[0], users))
