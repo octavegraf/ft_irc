@@ -39,19 +39,32 @@ int Server::removeUser(User *user)
 	return (0);
 }
 
+int Server::respond(int sfd, std::string message)
+{
+	#ifdef DEBUG
+		std::cerr << sfd << "->" << message << std::endl;
+	#endif
+	return (send(sfd, message.c_str(), message.length(), 0));
+}
+
 int Server::respond(User *user, std::string message)
 {
 	#ifdef DEBUG
 		std::cerr << user->getNickname() << "->" << message << std::endl;
 	#endif
-	return (send(user->getFd(), message.c_str(), message.length(), 0));
+	return (respond(user->getFd(), message));
 }
 
 int Server::respond(std::string nickname, std::string message)
 {
+	if (nickname.empty())
+		return (-1);
 	User *user = searchUser(nickname, _users);
 	if (!user)
 		return (-1);
+	#ifdef DEBUG
+		std::cerr << nickname << "->" << message << std::endl;
+	#endif
 	return (respond(user, message));
 }
 
@@ -278,6 +291,7 @@ void	Server::handleNewEvents(void)
 			#endif
 			// get msg
 			t_msg msg;
+			msg.sfd = _pollfds[i].fd;
 			while (parsing(text.c_str(), &msg) == 0)
 			{
 				#ifdef DEBUG
