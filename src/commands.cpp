@@ -2,6 +2,8 @@
 
 User *searchUser(std::string nickname, std::map<int, User *> users)
 {
+	if (nickname.empty())
+		return (NULL);
 	for (std::map<int, User *>::iterator it = users.begin(); it != users.end(); ++it)
 	{
 		if (it->second->getNickname() == nickname)
@@ -30,7 +32,7 @@ int dispatchCommand(t_msg *msg, Server &server)
 				case 2:
 					return (nick(msg, server));
 				case 3:
-					return (user(msg, server, 0));
+					return (user(msg, server));
 				case 4:
 					return (privmsg(msg, server));
 				default:
@@ -44,6 +46,7 @@ int dispatchCommand(t_msg *msg, Server &server)
 int cap(t_msg *msg, Server &server)
 {
 	// return (server.respond(msg->nickname, CAP(server.getHostname(), msg->nickname)));
+	std::cout << "test";
 	(void)msg; (void)server; return (0);
 }
 
@@ -59,9 +62,12 @@ int pass(t_msg *msg, Server &server)
 
 int nick(t_msg *msg, Server &server)
 {
+	if (msg->params.size() < 1)
+		return (server.respond(msg->sfd, ERR_NEEDMOREPARAMS(server.getHostname(), "", msg->command)));
+	
 	std::map<int, User *> users = server.getUsers();
 	if (searchUser(msg->params[0], users))
-		return (server.respond(msg->nickname, ERR_NICKNAMEINUSE(server.getHostname(), msg->nickname, msg->params[0])));
+		return (server.respond(msg->sfd, ERR_NICKNAMEINUSE(server.getHostname(), msg->nickname, msg->params[0])));
 	else
 	{
 		std::string oldNickname = msg->nickname;
@@ -70,41 +76,34 @@ int nick(t_msg *msg, Server &server)
 		{
 			user->setNickname(msg->params[0]);
 			std::string response = NICK(oldNickname, user->getUsername(), user->getRealName(), msg->params[0]);
-			return (server.respond(msg->nickname, response));
+			return (server.respond(user->getFd(), response));
 		}
 		else
-			return (server.respond(msg->nickname, ERR_NOTREGISTERED(server.getHostname(), msg->nickname)));
+			return (server.respond(msg->sfd, ERR_NOTREGISTERED(server.getHostname(), msg->nickname)));
 	}
 }
 
-int user(t_msg *msg, Server &server, int sfd)
+int user(t_msg *msg, Server &server)
 {
 	if (msg->params.size() < 4)
-		return (server.respond(msg->nickname, ERR_NEEDMOREPARAMS(server.getHostname(), msg->nickname, msg->command)));
+		return (server.respond(msg->sfd, ERR_NEEDMOREPARAMS(server.getHostname(), msg->nickname, msg->command)));
 
-	std::map<int, User *> users = server.getUsers();
-	User *user = searchUser(msg->nickname, users);
-	if (user)
+	std::map<int, User *>::const_iterator it = server.getUsers().find(msg->sfd);
+	if (it == server.getUsers().end())
+		return (-1);
+	
+	User* newUser = it->second;
+	// Check if this user is already registered (has a username set)
+	if (!newUser->getUsername().empty())
 	{
-		return (server.respond(msg->nickname, ERR_ALREADYREGISTRED(server.getHostname(), msg->nickname)));
+		return (server.respond(msg->sfd, ERR_ALREADYREGISTRED(server.getHostname(), msg->nickname)));
 	}
-	else
-	{
-		User *newUser = new User(sfd);
-		newUser->setNickname(msg->nickname);
-		newUser->setUsername(msg->params[0]);
-		newUser->setRealname(msg->params[3]);
-		if (!server.addUser(newUser))
-		{
-			server.respond(msg->nickname, RPL_WELCOME(server.getHostname(), msg->nickname, newUser->getUsername(), newUser->getRealName()));
-			return (0);
-		}
-		else
-		{
-			delete newUser;
-			return (server.respond(msg->nickname, ERR_ERRONEUSNICKNAME(server.getHostname(), msg->nickname, msg->params[0])));
-		}
-	}
+	
+	newUser->setUsername(msg->params[0]);
+	newUser->setRealname(msg->params[3]);
+	server.respond(msg->sfd, RPL_WELCOME(server.getHostname(), msg->nickname, newUser->getUsername(), newUser->getRealName()));
+	server.respond(msg->sfd, RPL_WELCOME(server.getHostname(), msg->nickname, newUser->getUsername(), newUser->getRealName()));
+	return (0);
 }
 
 int privmsg(t_msg *msg, Server &server)
