@@ -52,6 +52,7 @@ class Server
 
 		int addUser(User *user);
 		int removeUser(User *user);
+		int respond(int sfd, std::string message);
 		int respond(User *user, std::string message);
 		int respond(std::string nickname, std::string message);
 		int command(t_msg *msg);
