@@ -26,7 +26,7 @@ int Server::addUser(User *user)
 	#ifdef DEBUG
 		std::cerr << "Adding user: " << user->getNickname() << std::endl;
 	#endif
-	_users.insert(std::pair<int, User *>(user->getFd(), user));
+	_users.insert(std::pair<int, User *>(user->getSfd(), user));
 	return (0);
 }
 
@@ -35,7 +35,7 @@ int Server::removeUser(User *user)
 	#ifdef DEBUG
 		std::cerr << "Removing user: " << user->getNickname() << std::endl;
 	#endif
-	_users.erase(user->getFd());
+	_users.erase(user->getSfd());
 	return (0);
 }
 
@@ -44,7 +44,7 @@ int Server::respond(User *user, std::string message)
 	#ifdef DEBUG
 		std::cerr << user->getNickname() << "->" << message << std::endl;
 	#endif
-	return (send(user->getFd(), message.c_str(), message.length(), 0));
+	return (send(user->getSfd(), message.c_str(), message.length(), 0));
 }
 
 int Server::respond(std::string nickname, std::string message)
@@ -194,7 +194,7 @@ void	Server::addPollfd(int client_sfd)
 		if (this->_pollfds[i].fd == -1)
 		{
 			this->_pollfds[i].fd = client_sfd;
-			this->_pollfds[i].events = POLLIN | POLLOUT;
+			this->_pollfds[i].events = POLLIN;
 			this->_pollfds[i].revents = 0;
 			return ;
 		}
