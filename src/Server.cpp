@@ -1,5 +1,6 @@
 #include "Server.hpp"
 #include "commands.hpp"
+#include "utils.hpp"
 
 const std::string& Server::getHostname() const
 {
@@ -26,7 +27,7 @@ int Server::addUser(User *user)
 	#ifdef DEBUG
 		std::cerr << "Adding user: " << user->getNickname() << std::endl;
 	#endif
-	_users.insert(std::pair<int, User *>(user->getFd(), user));
+	_users.insert(std::pair<int, User *>(user->getSfd(), user));
 	return (0);
 }
 
@@ -35,38 +36,11 @@ int Server::removeUser(User *user)
 	#ifdef DEBUG
 		std::cerr << "Removing user: " << user->getNickname() << std::endl;
 	#endif
-	_users.erase(user->getFd());
+	_users.erase(user->getSfd());
 	return (0);
+	// @octavegraf @rchanrenous
 }
 
-int Server::respond(int sfd, std::string message)
-{
-	#ifdef DEBUG
-		std::cerr << sfd << "->" << message << std::endl;
-	#endif
-	return (send(sfd, message.c_str(), message.length(), 0));
-}
-
-int Server::respond(User *user, std::string message)
-{
-	#ifdef DEBUG
-		std::cerr << user->getNickname() << "->" << message << std::endl;
-	#endif
-	return (respond(user->getFd(), message));
-}
-
-int Server::respond(std::string nickname, std::string message)
-{
-	if (nickname.empty())
-		return (-1);
-	User *user = searchUser(nickname, _users);
-	if (!user)
-		return (-1);
-	#ifdef DEBUG
-		std::cerr << nickname << "->" << message << std::endl;
-	#endif
-	return (respond(user, message));
-}
 
 static void	fill_getaddrinfo_hints(struct addrinfo *hints, int ai_flags, int ai_family, int ai_socktype, int ai_protocol)
 {
@@ -207,7 +181,7 @@ void	Server::addPollfd(int client_sfd)
 		if (this->_pollfds[i].fd == -1)
 		{
 			this->_pollfds[i].fd = client_sfd;
-			this->_pollfds[i].events = POLLIN | POLLOUT;
+			this->_pollfds[i].events = POLLIN;
 			this->_pollfds[i].revents = 0;
 			return ;
 		}
@@ -298,7 +272,7 @@ void	Server::handleNewEvents(void)
 				std::cerr << msg << std::endl;
 				#endif
 				// exec message
-				dispatchCommand(&msg, *this);
+				utils::dispatchCommand(&msg, *this);
 				handled += 1;
 				text = "";
 			}

@@ -1,0 +1,98 @@
+#include "utils.hpp"
+#include "commands.hpp"
+
+extern bool	interrupt;
+
+static void	sigint_handler(int sig)
+{
+	if (sig == SIGINT)
+		interrupt = true;
+}
+
+int	utils::setup_signal_action(struct sigaction *sa)
+{
+	sa->sa_handler = sigint_handler;
+	sa->sa_flags = 0;
+	sigemptyset(&(sa->sa_mask));
+	if (sigaction(SIGINT, sa, NULL) != 0)
+		return (0); // throw exception instead?
+	return (1);
+}
+
+User *utils::searchUser(std::string nickname, std::map<int, User *> users)
+{
+	if (nickname.empty())
+		return (NULL);
+	for (std::map<int, User *>::iterator it = users.begin(); it != users.end(); ++it)
+	{
+		if (it->second->getNickname() == nickname)
+			return (it->second);
+	}
+	#ifdef DEBUG
+		std::cerr << "User " << nickname << " found." << std::endl;
+	#endif
+	return (NULL);
+}
+
+void utils::sendToUser(const std::string &message, const int &sfd)
+{
+	struct pollfd	send_pollfd;
+
+	send_pollfd.fd = sfd;
+	send_pollfd.events = POLLOUT;
+	send_pollfd.revents = 0;
+	int	res_poll = poll(&send_pollfd, 1, 0);
+	while (res_poll == 0)
+		res_poll = poll(&send_pollfd, 1, 0);
+	if (res_poll == -1)
+		throw std::exception();
+	if (send(send_pollfd.fd, message.c_str(), message.length(), 0) == -1)
+		throw std::exception();
+}
+
+void utils::sendToUser(const std::string &message, const User *user)
+{
+	utils::sendToUser(message, user->getSfd());
+}
+
+void utils::sendToUser(const std::string &message, const std::map<int, User *> &users, const std::string nickname)
+{
+	for (std::map<int, User *>::const_iterator it=users.begin(); it!=users.end(); it++)
+	{
+		if (it->second->getNickname() == nickname)
+			utils::sendToUser(message, it->first);
+	}
+}
+
+void utils::dispatchCommand(t_msg *msg, Server &server)
+{
+	const std::string commandsList[] = {"CAP", "PASS", "NICK", "USER", "PRIVMSG"};
+	for (int i = 0; i < 10; i++)
+	{
+		if (msg->command == commandsList[i])
+		{
+			std::cout << "Executing command: " << msg->command << std::endl;
+			switch (i)
+			{
+				case 0:
+					cap(msg, server);
+					return;
+				case 1:
+					pass(msg, server);
+					return;
+				case 2:
+					nick(msg, server);
+					return;
+				case 3:
+					user(msg, server);
+					return;
+				case 4:
+					privmsg(msg, server);
+					return;
+				default:
+					utils::sendToUser(ERR_UNKNOWNCOMMAND(server.getHostname(), msg->nickname, msg->command), server.getUsers(), msg->nickname);
+					return;
+			}
+		}
+	}
+}

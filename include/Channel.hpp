@@ -21,6 +21,7 @@ class Channel
 		std::string _name;
 		std::string _password;
 		std::string _topic;
+		unsigned int _nbUsers;
 		unsigned int _maxUsers;
 		bool _isTopicRestricted;
 		bool _isWhitelisted;
@@ -28,23 +29,28 @@ class Channel
 		std::map<int, User *> _whitelist;
 		std::map<int, User *> _operators;
 
-		User const &stringToUser(std::string const &nickname);
-		int changePassword(User const &sender, std::string const &password);
-		int changeRights(User const &sender, User const &target);
-		int changeUserLimits(User const &sender, unsigned int maxUsers);
+		bool	isUser(const User& user);
+		bool	isWhitelist(const User& user);
+		bool	isOperator(const User& user);
 
-		int sendMsg(User const &sender, User const &target, std::string const &msg);
-		int kickUser(User const &sender, User const &target, std::string const &reason);
-		int inviteUser(User const &sender, User const &target);
-		int topic(User const &sender, std::string const &param);
-		int changeMode(User const &sender, ChannelMode mode, std::string const &param);
+		void changePassword(const User& sender, const std::string& password);
+		void addUserRights(const User& sender, const User& target); // check error message
+		void removeUserRights(const User& sender, const User& target); // check error message
+		void changeMaxUsersLimit(const User& sender, unsigned int maxUsers);
+
+//		int sendMsg(const User& sender, const User& target, const std::string& msg);
+		void kickUser(const User& sender, const User& target, const std::string& reason);
+		void inviteUser(const User& sender, const User& target);
+		void topic(const User& sender, const std::string& param);
+		void changeMode(const User& sender, ChannelMode mode, const std::string& param);
 
 		friend std::ostream&	operator<<(std::ostream& os, const Channel& channel);
-		friend std::ostream& operator<<(std::ostream& os, const std::map<std::string, Channel>& channels);
+		friend std::ostream&	operator<<(std::ostream& os, const std::map<std::string, Channel>& channels);
 
 	public:
-		Channel(void);
+		Channel(const std::string& name);
 		~Channel(void);
 		const std::string& getName(void) const;
+		const unsigned int& getNbUsers(void) const;
 		int command(t_msg *msg);
 };

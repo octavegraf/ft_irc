@@ -1,136 +1,105 @@
 #include "commands.hpp"
+#include "utils.hpp"
 
-User *searchUser(std::string nickname, std::map<int, User *> users)
+void cap(t_msg *msg, Server &server)
 {
-	if (nickname.empty())
-		return (NULL);
-	for (std::map<int, User *>::iterator it = users.begin(); it != users.end(); ++it)
-	{
-		if (it->second->getNickname() == nickname)
-			return (it->second);
-	}
-	#ifdef DEBUG
-		std::cerr << "User " << nickname << " found." << std::endl;
-	#endif
-	return (NULL);
-}
-
-int dispatchCommand(t_msg *msg, Server &server)
-{
-	const std::string commandsList[] = {"CAP", "PASS", "NICK", "USER", "PRIVMSG"};
-	for (int i = 0; i < 10; i++)
-	{
-		if (msg->command == commandsList[i])
-		{
-			std::cout << "Executing command: " << msg->command << std::endl;
-			switch (i)
-			{
-				case 0:
-					return (cap(msg, server));
-				case 1:
-					return (pass(msg, server));
-				case 2:
-					return (nick(msg, server));
-				case 3:
-					return (user(msg, server));
-				case 4:
-					return (privmsg(msg, server));
-				default:
-					break;
-			}
-		}
-	}
-	return (server.respond(msg->nickname, ERR_UNKNOWNCOMMAND(server.getHostname(), msg->nickname, msg->command)));
-}
-
-int cap(t_msg *msg, Server &server)
-{
-	// return (server.respond(msg->nickname, CAP(server.getHostname(), msg->nickname)));
+	// return (utils::sendToUser(msg->nickname, CAP(server.getHostname(), msg->nickname)));
 	std::cout << "test";
-	(void)msg; (void)server; return (0);
+	(void)msg; (void)server;
 }
 
-int pass(t_msg *msg, Server &server)
+void pass(t_msg *msg, Server &server)
 {
 	if (msg->params.size() < 1)
-		return (server.respond(msg->nickname, ERR_PASSWDMISMATCH(server.getHostname(), msg->nickname)));
+		utils::sendToUser(ERR_PASSWDMISMATCH(server.getHostname(), msg->nickname), msg->sfd);
 	else if (msg->params[0] != server.getPassword())
-		return (server.respond(msg->nickname, ERR_PASSWDMISMATCH(server.getHostname(), msg->nickname)));
-	else
-		return (0);
+		utils::sendToUser(ERR_PASSWDMISMATCH(server.getHostname(), msg->nickname), msg->sfd);
 }
 
-int nick(t_msg *msg, Server &server)
+void nick(t_msg *msg, Server &server)
 {
 	if (msg->params.size() < 1)
-		return (server.respond(msg->sfd, ERR_NEEDMOREPARAMS(server.getHostname(), "", msg->command)));
+	{
+		utils::sendToUser(ERR_NEEDMOREPARAMS(server.getHostname(), "", msg->command), msg->sfd);
+		return;
+	}
 	
 	std::map<int, User *> users = server.getUsers();
-	if (searchUser(msg->params[0], users))
-		return (server.respond(msg->sfd, ERR_NICKNAMEINUSE(server.getHostname(), msg->nickname, msg->params[0])));
+	if (utils::searchUser(msg->params[0], users))
+	{
+		utils::sendToUser(ERR_NICKNAMEINUSE(server.getHostname(), msg->nickname, msg->params[0]), msg->sfd);
+		return;
+	}
 	else
 	{
 		std::string oldNickname = msg->nickname;
-		User *user = searchUser(oldNickname, users);
+		User *user = utils::searchUser(oldNickname, users);
 		if (user)
 		{
 			user->setNickname(msg->params[0]);
-			std::string response = NICK(oldNickname, user->getUsername(), user->getRealName(), msg->params[0]);
-			return (server.respond(user->getFd(), response));
+			utils::sendToUser(NICK(oldNickname, user->getUsername(), user->getRealName(), msg->params[0]), msg->sfd);
 		}
 		else
-			return (server.respond(msg->sfd, ERR_NOTREGISTERED(server.getHostname(), msg->nickname)));
+			utils::sendToUser(ERR_NOTREGISTERED(server.getHostname(), msg->nickname), msg->sfd);
 	}
 }
 
-int user(t_msg *msg, Server &server)
+void user(t_msg *msg, Server &server)
 {
 	if (msg->params.size() < 4)
-		return (server.respond(msg->sfd, ERR_NEEDMOREPARAMS(server.getHostname(), msg->nickname, msg->command)));
+	{
+		utils::sendToUser(ERR_NEEDMOREPARAMS(server.getHostname(), msg->nickname, msg->command), msg->sfd);
+		return;
+	}
 
 	std::map<int, User *>::const_iterator it = server.getUsers().find(msg->sfd);
 	if (it == server.getUsers().end())
-		return (-1);
+		return;
 	
 	User* newUser = it->second;
 	// Check if this user is already registered (has a username set)
 	if (!newUser->getUsername().empty())
 	{
-		return (server.respond(msg->sfd, ERR_ALREADYREGISTRED(server.getHostname(), msg->nickname)));
+		utils::sendToUser(ERR_ALREADYREGISTRED(server.getHostname(), msg->nickname), msg->sfd);
+		return;
 	}
 	
 	newUser->setUsername(msg->params[0]);
 	newUser->setRealname(msg->params[3]);
-	server.respond(msg->sfd, RPL_WELCOME(server.getHostname(), msg->nickname, newUser->getUsername(), newUser->getRealName()));
-	server.respond(msg->sfd, RPL_WELCOME(server.getHostname(), msg->nickname, newUser->getUsername(), newUser->getRealName()));
-	return (0);
+	utils::sendToUser(RPL_WELCOME(server.getHostname(), msg->nickname, newUser->getUsername(), newUser->getRealName()), msg->sfd);
+	utils::sendToUser(RPL_WELCOME(server.getHostname(), msg->nickname, newUser->getUsername(), newUser->getRealName()), msg->sfd);
 }
 
-int privmsg(t_msg *msg, Server &server)
+void privmsg(t_msg *msg, Server &server)
 {
 	if (msg->params.size() < 2)
-		return (server.respond(msg->nickname, ERR_NEEDMOREPARAMS(server.getHostname(), msg->nickname, msg->command)));
-	User *target = searchUser(msg->params[0], server.getUsers());
+	{
+		utils::sendToUser(ERR_NEEDMOREPARAMS(server.getHostname(), msg->nickname, msg->command), msg->sfd);
+		return;
+	}
+	User *target = utils::searchUser(msg->params[0], server.getUsers());
 	if (!target)
-		return (server.respond(msg->nickname, ERR_NOSUCHNICK(server.getHostname(), msg->nickname, msg->params[0])));
+	{
+		utils::sendToUser(ERR_NOSUCHNICK(server.getHostname(), msg->nickname, msg->params[0]), msg->sfd);
+		return;
+	}
 	std::string message = msg->params[1];
-	return (server.respond(target, CLIENT_ID(msg->nickname, msg->username, msg->hostname) + " PRIVMSG " + target->getNickname() + " :" + message));
+	utils::sendToUser(CLIENT_ID(msg->nickname, msg->username, msg->hostname) + " PRIVMSG " + target->getNickname() + " :" + message, target);
 }
 
-int pingpong(t_msg *msg, Server &server)
+void pingpong(t_msg *msg, Server &server)
 {
 	(void)msg;
 	(void)server;
 	// IDK if its for ping @user or test the server. Dont know how to implement it. @octavegraf
-	return (1);
 }
 
-int mode(t_msg *msg, Server &server)
+void mode(t_msg *msg, Server &server)
 {
 	(void)msg;
 	(void)server;
 	// @octavegraf TODO
-	return (1);
+	return;
 }
 
 /*	./a.out localhost 6666

@@ -4,9 +4,9 @@
 
 #include "errors.hpp"
 #include "Server.hpp"
+#include "utils.hpp"
 
 bool	interrupt(false);
-int		setup_signal_action(struct sigaction *sigaction);
 
 /*	for (int i = 0; !argv[argc - 1][i]; i++)
 	{
@@ -50,7 +50,7 @@ int	main(int argc, char **argv)
 	}
 	// set up signal action
 	struct sigaction	sigaction;
-	setup_signal_action(&sigaction);
+	utils::setup_signal_action(&sigaction);
 
 #ifdef DEBUG
 	std::cerr << *server;

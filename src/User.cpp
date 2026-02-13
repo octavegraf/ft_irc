@@ -8,13 +8,25 @@ User::~User()
 {
 }
 
-const std::string& User::getNickname() const { return (_nickname); }
+const std::string& User::getNickname(void) const
+{
+	return (this->_nickname);
+}
 
-const std::string& User::getUsername() const { return (_username);}
+const std::string& User::getUsername(void) const
+{
+	return (this->_username);
+}
 
-const std::string& User::getRealName() const { return (_realname); }
+const std::string& User::getRealName(void) const
+{
+	return (this->_realname);
+}
 
-const int& User::getFd() const { return (_sfd); }
+const int& User::getSfd(void) const
+{
+	return (this->_sfd);
+}
 
 void User::setNickname(const std::string& nickname)
 {
@@ -31,9 +43,9 @@ void	User::setRealname(const std::string& realname)
 	this->_realname = realname;
 }
 
-void User::completeInfo(bool status)
+void User::completeInfo(const bool& status)
 {
-	_completeInfos = status;
+	this->_completeInfos = status;
 }
 
 int User::command(t_msg *msg)
