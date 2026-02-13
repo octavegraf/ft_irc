@@ -6,7 +6,7 @@ int	parsing(const char *raw_msg, t_msg *msg)
 	*msg = t_msg();
 	static std::string buffer;
 	buffer += raw_msg;
-	if (!complete_message(raw_msg))
+	if (!complete_message(buffer))
 		return (1);
 	else
 	{
