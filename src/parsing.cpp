@@ -3,7 +3,9 @@
 
 int	parsing(const char *raw_msg, t_msg *msg)
 {
+	int sfd = msg->sfd;  // Save the socket fd before resetting
 	*msg = t_msg();
+	msg->sfd = sfd;  // Restore the socket fd
 	static std::string buffer;
 	buffer += raw_msg;
 	if (!complete_message(buffer))
