@@ -26,28 +26,39 @@ User *utils::searchUser(std::string nickname, std::map<int, User *> users)
 	for (std::map<int, User *>::iterator it = users.begin(); it != users.end(); ++it)
 	{
 		if (it->second->getNickname() == nickname)
+		{
+			#ifdef DEBUG
+				std::cerr << "User " << nickname << " found." << std::endl;
+			#endif
 			return (it->second);
+		}
 	}
-	#ifdef DEBUG
-		std::cerr << "User " << nickname << " found." << std::endl;
-	#endif
 	return (NULL);
 }
 
 void utils::sendToUser(const std::string &message, const int &sfd)
 {
 	struct pollfd	send_pollfd;
+	size_t			total_sent = 0;
+	size_t			to_send = message.length();
 
 	send_pollfd.fd = sfd;
 	send_pollfd.events = POLLOUT;
 	send_pollfd.revents = 0;
-	int	res_poll = poll(&send_pollfd, 1, 0);
-	while (res_poll == 0)
-		res_poll = poll(&send_pollfd, 1, 0);
-	if (res_poll == -1)
-		throw std::exception();
-	if (send(send_pollfd.fd, message.c_str(), message.length(), 0) == -1)
-		throw std::exception();
+	
+	while (total_sent < to_send)
+	{
+		int res_poll = poll(&send_pollfd, 1, 0);
+		while (res_poll == 0)
+			res_poll = poll(&send_pollfd, 1, 0);
+		if (res_poll == -1)
+			throw std::exception();
+		
+		ssize_t sent = send(send_pollfd.fd, message.c_str() + total_sent, to_send - total_sent, 0);
+		if (sent == -1)
+			throw std::exception();
+		total_sent += sent;
+	}
 }
 
 void utils::sendToUser(const std::string &message, const User *user)
