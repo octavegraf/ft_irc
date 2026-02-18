@@ -102,7 +102,7 @@ static int getListenSfd(const char *port)
 }
 
 Server::Server(const char *port, const char *password) :
-	_port(atoi(port)), _password(password), _listenSfd(getListenSfd(port)), _pollfds(), _nbUsers(0), _channels(), _users() 
+	_port(atoi(port)), _hostname("localhost"), _password(password), _listenSfd(getListenSfd(port)), _pollfds(), _nbUsers(0), _channels(), _users() 
 {
 	for (int i=0; i < CLIENT_LIMIT; i++)
 	{
@@ -113,7 +113,7 @@ Server::Server(const char *port, const char *password) :
 }
 
 Server::Server(const char *port) :
-	_port(atoi(port)), _password(""), _listenSfd(getListenSfd(port)), _pollfds(), _nbUsers(0), _channels(), _users() 
+	_port(atoi(port)), _hostname("localhost"), _password(""), _listenSfd(getListenSfd(port)), _pollfds(), _nbUsers(0), _channels(), _users() 
 {
 	for (int i=0; i < CLIENT_LIMIT; i++)
 	{
@@ -249,7 +249,7 @@ void	Server::handleNewEvents(void)
 		{
 			// get bytes
 			std::string	text("");
-			int	nbytes = recv(this->_pollfds[i].fd, buffer, BUFFER_SIZE, MSG_WAITALL);
+			int	nbytes = recv(this->_pollfds[i].fd, buffer, BUFFER_SIZE, 0);
 			while (nbytes > 0)
 			{
 				text.append(buffer, nbytes);
