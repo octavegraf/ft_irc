@@ -12,9 +12,9 @@
 // Source : https://www.rfc-editor.org/rfc/rfc1459.html
 
 // Generic messages / variables
-#define ERR_UNKNOWNCOMMAND(servername, client, command) (":" + servername + " 421 " + client + " " + command + " :Unknown command")
-#define ERR_NEEDMOREPARAMS(servername, client, command) (":" + servername + " 461 " + client + " " + command + " :Not enough parameters")
-#define ERR_NOTREGISTERED(servername, client) (":" + servername + " 451 " + client + " :You have not registered")
+#define ERR_UNKNOWNCOMMAND(servername, client, command) (":" + servername + " 421 " + client + " " + command + " :Unknown command\r\n")
+#define ERR_NEEDMOREPARAMS(servername, client, command) (":" + servername + " 461 " + client + " " + command + " :Not enough parameters\r\n")
+#define ERR_NOTREGISTERED(servername, client) (":" + servername + " 451 " + client + " :You have not registered\r\n")
 #define CLIENT_ID(nickname, user, host) (":" + nickname + "!" + user + "@" + host)
 
 // Client errors
@@ -26,18 +26,17 @@
 
 // PASS
 // No response if the password is correct
-#define ERR_PASSWDMISMATCH(servername, client) (":" + servername + " 464 " + client + " :Password incorrect")
+#define ERR_PASSWDMISMATCH(servername, client) (":" + servername + " 464 " + client + " :Password incorrect\r\n")
 
 // NICK
-#define NICK(old_nickname, user, host, nickname) (":" + old_nickname + "!" + user + "@" + host + " NICK " + nickname)
-#define ERR_NONICKNAMEGIVEN(servername, client) (":" + servername + " 431 " + client + " :No nickname given")
-#define ERR_ERRONEUSNICKNAME(servername, client, nickname) (":" + servername + " 432 " + client + " " + nickname + " :Erroneous nickname")
-#define ERR_NICKNAMEINUSE(servername, client, nickname) (":" + servername + " 433 " + client + " " + nickname + " :Nickname is already in use")
+#define NICK(old_nickname, user, host, nickname) (":" + old_nickname + "!" + user + "@" + host + " NICK " + nickname + "\r\n")
+#define ERR_NONICKNAMEGIVEN(servername, client) (":" + servername + " 431 " + client + " :No nickname given\r\n")
+#define ERR_ERRONEUSNICKNAME(servername, client, nickname) (":" + servername + " 432 " + client + " " + nickname + " :Erroneous nickname\r\n")
+#define ERR_NICKNAMEINUSE(servername, client, nickname) (":" + servername + " 433 " + client + " " + nickname + " :Nickname is already in use\r\n")
 
 // USER
-#define RPL_WELCOME(servername, nickname, user, host) (":" + servername + " 001 " + nickname + " :Welcome to the Internet Relay Network " + nickname + "!" + user + "@" + host)
-#define ERR_ALREADYREGISTRED(servername, client) (":" + servername + " 462 " + client + " :Unauthorized command (already registered)")
-#define ERR_NEEDMOREPARAMS(servername, client, command) (":" + servername + " 461 " + client + " " + command + " :Not enough parameters")
+#define RPL_WELCOME(servername, nickname, user, host) (":" + servername + " 001 " + nickname + " :Welcome to the Internet Relay Network " + nickname + "!" + user + "@" + host + "\r\n")
+#define ERR_ALREADYREGISTRED(servername, client) (":" + servername + " 462 " + client + " :Unauthorized command (already registered)\r\n")
 
 // PRIVMSG / NOTICE
 #define ERR_NOTEXTTOSEND(servername, nickname) (":" + servername + " 412 " + nickname + " :No text to send")
