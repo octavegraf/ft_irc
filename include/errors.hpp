@@ -37,6 +37,9 @@
 // USER
 #define RPL_WELCOME(servername, nickname, user, host) (":" + servername + " 001 " + nickname + " :Welcome to the Internet Relay Network " + nickname + "!" + user + "@" + host + "\r\n")
 #define ERR_ALREADYREGISTRED(servername, client) (":" + servername + " 462 " + client + " :Unauthorized command (already registered)\r\n")
+#define RPL_MOTDSTART(servername, nickname) (":" + servername + " 375 " + nickname + " :- " + servername + " Message of the Day -\r\n")
+#define RPL_MOTD(servername, nickname, motd_line) (":" + servername + " 372 " + nickname + " :" + motd_line + "\r\n")
+#define RPL_ENDOFMOTD(servername, nickname) (":" + servername + " 376 " + nickname + " :End of /MOTD command.\r\n")
 
 // PRIVMSG / NOTICE
 #define ERR_NOTEXTTOSEND(servername, nickname) (":" + servername + " 412 " + nickname + " :No text to send")
