@@ -1,6 +1,7 @@
 #include "Server.hpp"
 #include "commands.hpp"
 #include "utils.hpp"
+#include <iomanip>
 
 const std::string& Server::getHostname() const
 {
@@ -73,11 +74,20 @@ static int getListenSfd(const char *port)
 	while (ptr != NULL)
 	{
 		//addr_print_info(ptr);
-		sfd = socket(ptr->ai_family, ptr->ai_socktype | SOCK_NONBLOCK, ptr->ai_protocol);
+		sfd = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
 		if (sfd == -1)
 		{
 			freeaddrinfo(res);
 			std::cerr << "socket()" << std::endl;
+			throw std::exception();
+		}
+		// Set socket to non-blocking mode using fcntl (macOS compatible)
+		int flags = fcntl(sfd, F_GETFL, 0);
+		if (flags == -1 || fcntl(sfd, F_SETFL, flags | O_NONBLOCK) == -1)
+		{
+			freeaddrinfo(res);
+			close(sfd);
+			std::cerr << "fcntl() - setting non-blocking" << std::endl;
 			throw std::exception();
 		}
 		if (bind(sfd, ptr->ai_addr, ptr->ai_addrlen) == 0) // check errno in case of fail: assignment in progress etc.
@@ -260,8 +270,8 @@ void	Server::handleNewEvents(void)
 				throw std::exception();
 			}
 			#ifdef DEBUG
-						std::cerr << "text: " << text << std::endl;
-						std::cerr << "from user: " << std::endl << *(this->_users[this->_pollfds[i].fd]);
+						std::cerr << std::right << std::setw(60) << "text: " << text << std::endl;
+						std::cerr << std::left << "from user: " << std::endl << *(this->_users[this->_pollfds[i].fd]);
 			#endif
 			// get msg
 			t_msg msg;
@@ -269,7 +279,7 @@ void	Server::handleNewEvents(void)
 			while (parsing(text.c_str(), &msg) == 0)
 			{
 				#ifdef DEBUG
-				std::cerr << msg << std::endl;
+				std::cerr << "\t\t\t\t\t\t\t" << msg << std::endl;
 				#endif
 				// exec message
 				utils::dispatchCommand(&msg, *this);
