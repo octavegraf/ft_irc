@@ -42,7 +42,7 @@ int	main(int argc, char **argv)
 		else
 			server = new Server(argv[1]);
 	}
-	catch (std::exception e)
+	catch (const std::exception& e)
 	{
 		std::cerr << "Failed to initialize the server." << std::endl;
 		//std::cerr << e.what() << std::endl;
@@ -66,7 +66,7 @@ int	main(int argc, char **argv)
 			// iterate on the fds to find events to handle with dispatchCommand()
 			server->handleNewEvents();
 		}
-		catch (std::exception e)
+		catch (const std::exception& e)
 		{
 			interrupt = false;	
 		}
