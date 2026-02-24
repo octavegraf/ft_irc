@@ -111,14 +111,19 @@ void privmsg(t_msg *msg, Server &server)
 		return;
 	}
 	std::string message = msg->params[1];
-	utils::sendToUser(CLIENT_ID(msg->nickname, msg->username, msg->hostname) + " PRIVMSG " + target->getNickname() + " :" + message, target);
+	utils::sendToUser(PRIVMSG(msg->nickname, msg->username, msg->hostname, target->getNickname(), message), target);
 }
 
 void pingpong(t_msg *msg, Server &server)
 {
-	(void)msg;
-	(void)server;
-	// IDK if its for ping @user or test the server. Dont know how to implement it. @octavegraf
+	if (msg->params.size() < 1)
+	{
+		utils::sendToUser(ERR_NEEDMOREPARAMS(server.getHostname(), msg->nickname, msg->command), msg->sfd);
+		return;
+	}
+	
+	// Send PONG response with the parameter received
+	utils::sendToUser(RPL_PONG(server.getHostname(), msg->params[0]), msg->sfd);
 }
 
 void mode(t_msg *msg, Server &server)
