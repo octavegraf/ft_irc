@@ -38,10 +38,13 @@ void nick(t_msg *msg, Server &server)
 	
 	std::map<int, User *> users = server.getUsers();
 	
+	// Use * as placeholder for unregistered clients
+	std::string client_id = msg->nickname.empty() ? "*" : msg->nickname;
+	
 	// Check if new nickname is already taken
 	if (utils::searchUser(msg->params[0], users))
 	{
-		utils::sendToUser(ERR_NICKNAMEINUSE(server.getHostname(), msg->nickname, msg->params[0]), msg->sfd);
+		utils::sendToUser(ERR_NICKNAMEINUSE(server.getHostname(), client_id, msg->params[0]), msg->sfd);
 		return;
 	}
 	
@@ -49,7 +52,7 @@ void nick(t_msg *msg, Server &server)
 	std::map<int, User *>::iterator it = users.find(msg->sfd);
 	if (it == users.end())
 	{
-		utils::sendToUser(ERR_NOTREGISTERED(server.getHostname(), msg->nickname), msg->sfd);
+		utils::sendToUser(ERR_NOTREGISTERED(server.getHostname(), client_id), msg->sfd);
 		return;
 	}
 	
@@ -57,8 +60,17 @@ void nick(t_msg *msg, Server &server)
 	std::string oldNickname = user->getNickname();
 	if (oldNickname.empty())
 		oldNickname = msg->params[0];
+	
+	// Double-check that nobody took this nick while we were here
+	std::map<int, User *> users_check = server.getUsers();
+	if (utils::searchUser(msg->params[0], users_check))
+	{
+		utils::sendToUser(ERR_NICKNAMEINUSE(server.getHostname(), client_id, msg->params[0]), msg->sfd);
+		return;
+	}
+	
 	user->setNickname(msg->params[0]);
-	utils::sendToUser(NICK(oldNickname, user->getUsername(), user->getRealName(), msg->params[0]), msg->sfd);
+	utils::sendToUser(NICK(oldNickname, user->getUsername(), server.getHostname(), msg->params[0]), msg->sfd);
 }
 
 void user(t_msg *msg, Server &server)
@@ -74,6 +86,14 @@ void user(t_msg *msg, Server &server)
 		return;
 	
 	User* newUser = it->second;
+	
+	// NICK MUST be set before USER (RFC 1459)
+	if (newUser->getNickname().empty())
+	{
+		utils::sendToUser(ERR_NOTREGISTERED(server.getHostname(), "*"), msg->sfd);
+		return;
+	}
+	
 	// Check if this user is already registered (has a username set)
 	if (!newUser->getUsername().empty())
 	{
@@ -84,14 +104,14 @@ void user(t_msg *msg, Server &server)
 	newUser->setUsername(msg->params[0]);
 	newUser->setRealname(msg->params[3]);
 
-	// Send welcome message
-	utils::sendToUser(RPL_WELCOME(server.getHostname(), msg->nickname, newUser->getUsername(), newUser->getRealName()), msg->sfd);
+	// Send welcome message (NICK and USERNAME are now both set)
+	utils::sendToUser(RPL_WELCOME(server.getHostname(), newUser->getNickname(), newUser->getUsername(), server.getHostname()), msg->sfd);
 
 	// Send motd
-	utils::sendToUser(RPL_MOTDSTART(server.getHostname(), msg->nickname), msg->sfd);
-	utils::sendToUser(RPL_MOTD(server.getHostname(), msg->nickname, "-"), msg->sfd);
-	utils::sendToUser(RPL_MOTD(server.getHostname(), msg->nickname, "Welcome to IRC"), msg->sfd);
-	utils::sendToUser(RPL_ENDOFMOTD(server.getHostname(), msg->nickname), msg->sfd);
+	utils::sendToUser(RPL_MOTDSTART(server.getHostname(), newUser->getNickname()), msg->sfd);
+	utils::sendToUser(RPL_MOTD(server.getHostname(), newUser->getNickname(), "-"), msg->sfd);
+	utils::sendToUser(RPL_MOTD(server.getHostname(), newUser->getNickname(), "Welcome to IRC"), msg->sfd);
+	utils::sendToUser(RPL_ENDOFMOTD(server.getHostname(), newUser->getNickname()), msg->sfd);
 
 	// Mark user as registered
 	newUser->completeInfo(true);
