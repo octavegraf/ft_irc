@@ -238,9 +238,11 @@ void	Server::acceptNewConnections(void)
 
 int	Server::fetchNewEvents(void)
 {
-	int	res_poll = poll(this->_pollfds, this->_nbUsers, 0);
+	int	res_poll = poll(this->_pollfds, CLIENT_LIMIT, 10);
 	if (res_poll == -1)
 	{
+		if (errno == EINTR)
+			return (0);  // Signal interrupted poll, continue the loop
 		std::cerr << "poll()" << std::endl;
 		throw std::exception();
 	}
@@ -276,7 +278,9 @@ void	Server::handleNewEvents(void)
 			// get msg
 			t_msg msg;
 			msg.sfd = _pollfds[i].fd;
-			while (parsing(text.c_str(), &msg) == 0)
+			int parse_return = parsing(text.c_str(), &msg);
+
+			while (parse_return == 0)
 			{
 				#ifdef DEBUG
 				std::cerr << "\t\t\t\t\t\t\t" << msg << std::endl;
@@ -284,7 +288,7 @@ void	Server::handleNewEvents(void)
 				// exec message
 				utils::dispatchCommand(&msg, *this);
 				handled += 1;
-				text = "";
+				parse_return = parsing("", &msg);
 			}
 		}
 	}
