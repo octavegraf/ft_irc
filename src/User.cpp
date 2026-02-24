@@ -1,7 +1,7 @@
 #include "User.hpp"
 
 User::User(const int sfd) : 
-	_nickname(""), _username(""), _realname(""), _sfd(sfd)
+	_nickname(""), _username(""), _realname(""), _sfd(sfd), _completeInfos(false), _parseBuffer("")
 {}
 
 User::~User()
@@ -26,6 +26,11 @@ const std::string& User::getRealName(void) const
 const int& User::getSfd(void) const
 {
 	return (this->_sfd);
+}
+
+std::string& User::getParseBuffer(void)
+{
+	return (this->_parseBuffer);
 }
 
 void User::setNickname(const std::string& nickname)

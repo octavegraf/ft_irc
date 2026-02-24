@@ -14,6 +14,7 @@ class User
 		std::string _realname; // For real name, contains spaces
 		int _sfd; // Socket file descriptor
 		bool _completeInfos;
+		std::string _parseBuffer; // Parsing buffer for this user
 
 		friend std::ostream&	operator<<(std::ostream& os, const User& user);
 		friend std::ostream&	operator<<(std::ostream& os, const std::map<int, User *>& users);
@@ -27,6 +28,7 @@ class User
 		const std::string& getUsername(void) const;
 		const std::string& getRealName(void) const;
 		const int& getSfd() const ;
+		std::string& getParseBuffer(void);
 
 		// setters
 		void setNickname(std::string const &nickname);
