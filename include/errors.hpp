@@ -1,7 +1,5 @@
 #pragma once
 
-#include "colors.hpp"
-
 #define ERROR "Error: "
 #define NOT_FOUND " not found."
 #define ERR_INVALID_ARGC ERROR "Invalid arguments. Usage: ./ircserv <port> <password>"
