@@ -1,13 +1,15 @@
 #include "parsing.hpp"
 #include <iostream>
 
-int	parsing(const char *raw_msg, t_msg *msg)
+int	parsing(std::string& buffer, const char *raw_msg, t_msg *msg)
 {
-	int sfd = msg->sfd;  // Save the socket fd before resetting
+	int sfd = msg->sfd;  // Save the sfd
+	
 	*msg = t_msg();
-	msg->sfd = sfd;  // Restore the socket fd
-	static std::string buffer;
-	buffer += raw_msg;
+	msg->sfd = sfd;  // Restore the sfd
+	
+	buffer += raw_msg;  // Append to the buffer
+	
 	if (!complete_message(buffer))
 		return (1);
 	else
