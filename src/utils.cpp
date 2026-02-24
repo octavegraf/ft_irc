@@ -1,7 +1,13 @@
 #include "utils.hpp"
 #include "commands.hpp"
+#include <iomanip>
 
 extern bool	interrupt;
+
+void utils::debugSendRight(const std::string &message)
+{
+	std::cerr << std::right << std::setw(80) << message << std::endl;
+}
 
 static void	sigint_handler(int sig)
 {
@@ -48,11 +54,11 @@ void utils::sendToUser(const std::string &message, const int &sfd)
 	
 	while (total_sent < to_send)
 	{
-		int res_poll = poll(&send_pollfd, 1, 0);
-		while (res_poll == 0)
-			res_poll = poll(&send_pollfd, 1, 0);
+		int res_poll = poll(&send_pollfd, 1, 1);
 		if (res_poll == -1)
 			throw std::exception();
+		if (res_poll == 0)
+			continue;
 		
 		ssize_t sent = send(send_pollfd.fd, message.c_str() + total_sent, to_send - total_sent, 0);
 		if (sent == -1)
@@ -77,7 +83,7 @@ void utils::sendToUser(const std::string &message, const std::map<int, User *> &
 
 void utils::dispatchCommand(t_msg *msg, Server &server)
 {
-	const std::string commandsList[] = {"CAP", "PASS", "NICK", "USER", "PRIVMSG"};
+	const std::string commandsList[] = {"CAP", "PASS", "NICK", "USER", "PRIVMSG", "PING"};
 	for (int i = 0; i < 10; i++)
 	{
 		if (msg->command == commandsList[i])
@@ -99,6 +105,9 @@ void utils::dispatchCommand(t_msg *msg, Server &server)
 					return;
 				case 4:
 					privmsg(msg, server);
+					return;
+				case 5:
+					pingpong(msg, server);
 					return;
 				default:
 					utils::sendToUser(ERR_UNKNOWNCOMMAND(server.getHostname(), msg->nickname, msg->command), server.getUsers(), msg->nickname);

@@ -16,4 +16,5 @@ namespace utils
 	void sendToUser(const std::string &message, const User *user);
 	void sendToUser(const std::string &message, const std::map<int, User *> &users, const std::string nickname);
 	void dispatchCommand(t_msg *msg, Server &server);
+	void debugSendRight(const std::string &message);
 }
