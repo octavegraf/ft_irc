@@ -2,6 +2,7 @@
 #include "commands.hpp"
 #include "utils.hpp"
 #include <iomanip>
+#include "colors.hpp"
 
 const std::string& Server::getHostname() const
 {
@@ -26,7 +27,10 @@ const std::map<int, User *>& Server::getUsers() const
 int Server::addUser(User *user)
 {
 	#ifdef DEBUG
+		std::cerr << BLUE;
 		std::cerr << "Adding user: " << user->getNickname() << std::endl;
+		std::cerr << RESET;
+		std::cerr << "==========" << std::endl;
 	#endif
 	_users.insert(std::pair<int, User *>(user->getSfd(), user));
 	return (0);
@@ -35,7 +39,10 @@ int Server::addUser(User *user)
 int Server::removeUser(User *user)
 {
 	#ifdef DEBUG
+		std::cerr << BLUE;
 		std::cerr << "Removing user: " << user->getNickname() << std::endl;
+		std::cerr << RESET;
+		std::cerr << "==========" << std::endl;
 	#endif
 	_users.erase(user->getSfd());
 	return (0);
@@ -140,7 +147,10 @@ Server::~Server(void)
 		if (this->_pollfds[i].fd != -1)
 		{
 #ifdef DEBUG
+			std::cerr << BLUE;
 			std::cerr << "close fd: " << this->_pollfds[i].fd << std::endl;
+			std::cerr << RESET;
+			std::cerr << "==========" << std::endl;
 #endif
 			close(this->_pollfds[i].fd);
 		}
@@ -214,6 +224,7 @@ void	Server::acceptNewConnections(void)
 	if (this->_nbUsers >= CLIENT_LIMIT)
 	{
 		std::cerr << "Connexion rejected: maximum user limit reached" << std::endl; 
+		// send reject message to client?
 		close(client_sfd);
 		return ;
 	}
@@ -225,12 +236,17 @@ void	Server::acceptNewConnections(void)
 		throw std::exception();
 	}	
 #ifdef DEBUG
+	std::cerr << RED;
 	std::cerr << "Now listening on sfd: " << client_sfd << std::endl;
+	std::cerr << RESET;
 #endif
 	// instantiate new User and add User to server's Users list
 	this->_users[client_sfd] = new User(client_sfd);
 #ifdef DEBUG
+	std::cerr << BLUE;
 	std::cerr << "Adding new user to Server: " << std::endl << *(this->_users[client_sfd]);
+	std::cerr << RESET;
+	std::cerr << "==========" << std::endl;
 #endif
 	// add new user's fd to server's list of pollfds
 	this->addPollfd(client_sfd);
@@ -269,23 +285,33 @@ void	Server::handleNewEvents(void)
 			{
 				throw std::exception();
 			}
-			#ifdef DEBUG
-						std::cerr << std::right << std::setw(60) << "text: " << text << std::endl;
-						std::cerr << std::left << "from user: " << std::endl << *(this->_users[this->_pollfds[i].fd]);
-			#endif
+#ifdef DEBUG
+			std::cerr << RED;
+			std::cerr << "Received:" << std::endl;
+			std::cerr << GREEN;
+			std::cerr << "text: " << text << std::endl;
+			std::cerr << "from user: " << std::endl << *(this->_users[this->_pollfds[i].fd]);
+			std::cerr << RESET;
+#endif
 			// get msg
 			t_msg msg;
 			msg.sfd = _pollfds[i].fd;
 			while (parsing(text.c_str(), &msg) == 0)
 			{
 				#ifdef DEBUG
-				std::cerr << "\t\t\t\t\t\t\t" << msg << std::endl;
+				std::cerr << GREEN;
+				std::cerr << ">>>>>>>" << msg << std::endl;
 				#endif
 				// exec message
 				utils::dispatchCommand(&msg, *this);
 				handled += 1;
 				text = "";
 			}
+
+			#ifdef DEBUG
+			std::cerr << RESET;
+			std::cerr << "==========" << std::endl;
+			#endif
 		}
 	}
 }
