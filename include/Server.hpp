@@ -32,7 +32,7 @@ class Server
 		int	createChannel(const std::string& channelName);
 		int	deleteChannel(const std::string& channelName);
 		int	connectUser(User& user);
-		int	disconnectUser(User& user);
+		void	disconnectUser(int client_sfd);
 		int	privateMsg(const User& sender, const User& target, const std::string& msg);
 		int	joinChannel(const User& user, const std::string& channelName, const std::string& password);
 		int	leaveChannel(const User& user, const std::string& channelName);

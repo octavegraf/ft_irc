@@ -42,6 +42,34 @@ int Server::removeUser(User *user)
 	// @octavegraf @rchanrenous
 }
 
+void Server::disconnectUser(int client_sfd)
+{
+	// Find and remove the user from the map
+	std::map<int, User *>::iterator it = _users.find(client_sfd);
+	if (it != _users.end())
+	{
+		delete it->second;
+		_users.erase(it);
+	}
+	
+	// Close the socket
+	close(client_sfd);
+	
+	// Mark the pollfd slot as unused
+	for (int i = 0; i < CLIENT_LIMIT; i++)
+	{
+		if (_pollfds[i].fd == client_sfd)
+		{
+			_pollfds[i].fd = -1;
+			_pollfds[i].events = 0;
+			_pollfds[i].revents = 0;
+			break;
+		}
+	}
+	
+	_nbUsers -= 1;
+}
+
 
 static void	fill_getaddrinfo_hints(struct addrinfo *hints, int ai_flags, int ai_family, int ai_socktype, int ai_protocol)
 {
@@ -262,6 +290,16 @@ void	Server::handleNewEvents(void)
 			// get bytes
 			std::string	text("");
 			int	nbytes = recv(this->_pollfds[i].fd, buffer, BUFFER_SIZE, 0);
+			if (nbytes == 0)
+			{
+				// Client disconnected
+#ifdef DEBUG
+				std::cerr << "Client disconnected (socket " << this->_pollfds[i].fd << ")" << std::endl;
+#endif
+				this->disconnectUser(this->_pollfds[i].fd);
+				handled += 1;
+				continue;
+			}
 			while (nbytes > 0)
 			{
 				text.append(buffer, nbytes);
@@ -272,23 +310,33 @@ void	Server::handleNewEvents(void)
 				throw std::exception();
 			}
 			#ifdef DEBUG
-						std::cerr << std::right << std::setw(60) << "text: " << text << std::endl;
+						std::cerr << std::right << std::setw(60) << "RAW text received: [" << text << "]" << std::endl;
 						std::cerr << std::left << "from user: " << std::endl << *(this->_users[this->_pollfds[i].fd]);
 			#endif
 			// get msg
 			t_msg msg;
 			msg.sfd = _pollfds[i].fd;
-			int parse_return = parsing(text.c_str(), &msg);
+			
+			// Get user's parse buffer
+			User* user = this->_users[_pollfds[i].fd];
+			if (!user)
+				continue;
+			
+			int parse_return = parsing(user->getParseBuffer(), text.c_str(), &msg);
 
 			while (parse_return == 0)
 			{
 				#ifdef DEBUG
-				std::cerr << "\t\t\t\t\t\t\t" << msg << std::endl;
+				std::cerr << "PARSED MSG - cmd: [" << msg.command << "] nickname: [" << msg.nickname 
+					<< "] params_count: " << msg.params.size();
+				if (msg.params.size() > 0) 
+					std::cerr << " params[0]: [" << msg.params[0] << "]";
+				std::cerr << std::endl;
 				#endif
 				// exec message
 				utils::dispatchCommand(&msg, *this);
 				handled += 1;
-				parse_return = parsing("", &msg);
+				parse_return = parsing(user->getParseBuffer(), "", &msg);
 			}
 		}
 	}
