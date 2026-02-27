@@ -10,6 +10,7 @@ OBJ_FOLDER			=	obj/
 OBJ					=	$(addprefix $(OBJ_FOLDER), $(SRC:.cpp=.o))
 OBJ_DEBUG			=	$(addprefix $(OBJ_FOLDER), $(SRC:.cpp=_debug.o))
 DPD					=	$(addprefix $(OBJ_FOLDER), $(SRC:.cpp=.d))
+DPD_DEBUG			=	$(addprefix $(OBJ_FOLDER), $(SRC:.cpp=_debug.d))
 
 all					:	$(NAME)
 
@@ -27,7 +28,7 @@ $(OBJ_FOLDER)%.o	:	%.cpp
 	mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
--include $(DPD)
+-include $(DPD) $(DPD_DEBUG)
 
 clean				:
 	rm -rf $(OBJ_FOLDER)

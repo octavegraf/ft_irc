@@ -17,11 +17,11 @@ typedef struct	s_msg
 
 inline std::ostream& operator<<(std::ostream& os, const t_msg& msg)
 {
-	os << "nickame: " << msg.nickname << std::endl;
-	os << "username: " << msg.username << std::endl;
-	os << "hostname: " << msg.hostname << std::endl;
-	os << "command: " << msg.command << std::endl;
-	os << "params:";
+	os << "\tnickame: " << msg.nickname << std::endl;
+	os << "\tusername: " << msg.username << std::endl;
+	os << "\thostname: " << msg.hostname << std::endl;
+	os << "\tcommand: " << msg.command << std::endl;
+	os << "\tparams:";
 	for (size_t i = 0; i < msg.params.size(); ++i)
 		os << " " << msg.params[i];
 	return (os);
