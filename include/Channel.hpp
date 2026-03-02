@@ -52,5 +52,13 @@ class Channel
 		~Channel(void);
 		const std::string& getName(void) const;
 		const unsigned int& getNbUsers(void) const;
+		const std::map<int, User *>& getUsers(void) const;
+		const std::string& getTopic(void) const;
+		const std::string& getPassword(void) const;
+		bool isFull(void) const;
+		bool isWhitelisted(void) const;
+		bool isPasswordProtected(void) const;
+		int addUser(User *user);
+		int removeUser(const User& user);
 		int command(t_msg *msg);
 };

@@ -14,6 +14,7 @@ void pingpong(t_msg *msg, Server &server);
 
 // Channel Scope
 void mode(t_msg *msg, Server &server);
+void join(t_msg *msg, Server &server);
 
 // User Scope
 void nick(t_msg *msg, Server &server);

@@ -46,6 +46,16 @@ User *utils::searchUser(std::string nickname, std::map<int, User *> users)
 	return (NULL);
 }
 
+Channel *utils::searchChannel(std::string name, const std::map<std::string, Channel>& channels)
+{
+	if (name.empty())
+		return (NULL);
+	std::map<std::string, Channel>::const_iterator it = channels.find(name);
+	if (it != channels.end())
+		return (const_cast<Channel *>(&it->second));
+	return (NULL);
+}
+
 void utils::sendToUser(const std::string &message, const int &sfd)
 {
 	struct pollfd	send_pollfd;
@@ -97,7 +107,7 @@ void utils::sendToUser(const std::string &message, const std::map<int, User *> &
 
 void utils::dispatchCommand(t_msg *msg, Server &server)
 {
-	const std::string commandsList[] = {"CAP", "PASS", "NICK", "USER", "PRIVMSG", "PING"};
+	const std::string commandsList[] = {"CAP", "PASS", "NICK", "USER", "PRIVMSG", "PING", "JOIN"};
 	for (int i = 0; i < 10; i++)
 	{
 		if (msg->command == commandsList[i])
@@ -126,6 +136,9 @@ void utils::dispatchCommand(t_msg *msg, Server &server)
 					return;
 				case 5:
 					pingpong(msg, server);
+					return;
+				case 6:
+					join(msg, server);
 					return;
 				default:
 					utils::sendToUser(ERR_UNKNOWNCOMMAND(server.getHostname(), msg->nickname, msg->command), server.getUsers(), msg->nickname);

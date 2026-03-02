@@ -33,6 +33,11 @@ std::string& User::getParseBuffer(void)
 	return (this->_parseBuffer);
 }
 
+bool User::getCompleteInfo(void) const
+{
+	return (this->_completeInfos);
+}
+
 void User::setNickname(const std::string& nickname)
 {
 	this->_nickname = nickname;

@@ -29,6 +29,7 @@ class User
 		const std::string& getRealName(void) const;
 		const int& getSfd() const ;
 		std::string& getParseBuffer(void);
+		bool getCompleteInfo(void) const;
 
 		// setters
 		void setNickname(std::string const &nickname);

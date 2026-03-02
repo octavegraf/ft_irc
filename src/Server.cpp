@@ -77,6 +77,75 @@ void Server::disconnectUser(int client_sfd)
 	_nbUsers -= 1;
 }
 
+int Server::createChannel(const std::string& channelName)
+{
+	if (_channels.find(channelName) != _channels.end())
+		return (-1); // Channel already exists
+	Channel newChannel(channelName);
+	_channels.insert(std::make_pair(channelName, newChannel));
+	return (0);
+}
+
+int Server::deleteChannel(const std::string& channelName)
+{
+	std::map<std::string, Channel>::iterator it = _channels.find(channelName);
+	if (it == _channels.end())
+		return (-1); // Channel doesn't exist
+	_channels.erase(it);
+	return (0);
+}
+
+int Server::joinChannel(const User& user, const std::string& channelName, const std::string& password)
+{
+	std::map<std::string, Channel>::iterator it = _channels.find(channelName);
+	Channel *channel;
+	bool is_new_channel = false;
+
+	// If channel doesn't exist, create it
+	if (it == _channels.end())
+	{
+		if (createChannel(channelName) != 0)
+			return (-1);
+		it = _channels.find(channelName);
+		is_new_channel = true;
+	}
+	
+	channel = &(it->second);
+	
+	// Check if user is already in channel
+	if (channel->getUsers().find(user.getSfd()) != channel->getUsers().end())
+		return (1); // User already in channel
+	
+	// Check if channel is full
+	if (channel->isFull())
+		return (2); // Channel is full
+	
+	// Check if channel is password protected
+	if (channel->isPasswordProtected() && password != channel->getPassword())
+		return (3); // Wrong password
+	
+	// Add user to channel
+	channel->addUser(const_cast<User *>(&user));
+	return (0); // Success
+}
+
+int Server::leaveChannel(const User& user, const std::string& channelName)
+{
+	std::map<std::string, Channel>::iterator it = _channels.find(channelName);
+	if (it == _channels.end())
+		return (-1); // Channel doesn't exist
+	
+	Channel *channel = &(it->second);
+	if (channel->removeUser(user) != 0)
+		return (-1); // User not in channel
+	
+	// Delete empty channel
+	if (channel->getNbUsers() == 0)
+	{
+		_channels.erase(it);
+	}
+	return (0);
+}
 
 static void	fill_getaddrinfo_hints(struct addrinfo *hints, int ai_flags, int ai_family, int ai_socktype, int ai_protocol)
 {

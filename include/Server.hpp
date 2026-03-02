@@ -34,7 +34,6 @@ class Server
 		int	connectUser(User& user);
 		void	disconnectUser(int client_sfd);
 		int	privateMsg(const User& sender, const User& target, const std::string& msg);
-		int	joinChannel(const User& user, const std::string& channelName, const std::string& password);
 		int	leaveChannel(const User& user, const std::string& channelName);
 
 		void	printPollfds(void) const;
@@ -52,6 +51,7 @@ class Server
 
 		int addUser(User *user);
 		int removeUser(User *user);
+		int joinChannel(const User& user, const std::string& channelName, const std::string& password);
 		int command(t_msg *msg);
 
 		// exec

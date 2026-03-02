@@ -88,6 +88,54 @@ const std::string& Channel::getName(void) const
 	return (this->_name);
 }
 
+const std::map<int, User *>& Channel::getUsers(void) const
+{
+	return (this->_users);
+}
+
+const std::string& Channel::getTopic(void) const
+{
+	return (this->_topic);
+}
+
+const std::string& Channel::getPassword(void) const
+{
+	return (this->_password);
+}
+
+bool Channel::isFull(void) const
+{
+	return (this->_nbUsers >= this->_maxUsers);
+}
+
+bool Channel::isWhitelisted(void) const
+{
+	return (this->_isWhitelisted);
+}
+
+bool Channel::isPasswordProtected(void) const
+{
+	return (!this->_password.empty());
+}
+
+int Channel::addUser(User *user)
+{
+	if (this->_users.find(user->getSfd()) != this->_users.end())
+		return (-1); // User already in channel
+	this->_users[user->getSfd()] = user;
+	this->_nbUsers++;
+	return (0);
+}
+
+int Channel::removeUser(const User& user)
+{
+	if (this->_users.find(user.getSfd()) == this->_users.end())
+		return (-1); // User not in channel
+	this->_users.erase(user.getSfd());
+	this->_nbUsers--;
+	return (0);
+}
+
 std::ostream&	operator<<(std::ostream& os, const Channel& channel)
 {
 	os << "**\tname: " << channel._name << std::endl;
