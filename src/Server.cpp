@@ -137,7 +137,7 @@ int Server::leaveChannel(const User& user, const std::string& channelName)
 	
 	Channel *channel = &(it->second);
 	if (channel->removeUser(user) != 0)
-		return (-1); // User not in channel
+		return (1); // User not in channel
 	
 	// Delete empty channel
 	if (channel->getNbUsers() == 0)

@@ -71,6 +71,22 @@ void nick(t_msg *msg, Server &server)
 	
 	user->setNickname(msg->params[0]);
 	utils::sendToUser(NICK(oldNickname, user->getUsername(), server.getHostname(), msg->params[0]), msg->sfd);
+	
+	// If user already has a username (was set before NICK), complete registration
+	if (!user->getUsername().empty() && !user->getCompleteInfo())
+	{
+		// Send welcome message
+		utils::sendToUser(RPL_WELCOME(server.getHostname(), user->getNickname(), user->getUsername(), server.getHostname()), msg->sfd);
+		
+		// Send motd
+		utils::sendToUser(RPL_MOTDSTART(server.getHostname(), user->getNickname()), msg->sfd);
+		utils::sendToUser(RPL_MOTD(server.getHostname(), user->getNickname(), "-"), msg->sfd);
+		utils::sendToUser(RPL_MOTD(server.getHostname(), user->getNickname(), "Welcome to IRC"), msg->sfd);
+		utils::sendToUser(RPL_ENDOFMOTD(server.getHostname(), user->getNickname()), msg->sfd);
+		
+		// Mark user as registered
+		user->completeInfo(true);
+	}
 }
 
 void user(t_msg *msg, Server &server)
@@ -87,13 +103,6 @@ void user(t_msg *msg, Server &server)
 	
 	User* newUser = it->second;
 	
-	// NICK MUST be set before USER (RFC 1459)
-	if (newUser->getNickname().empty())
-	{
-		utils::sendToUser(ERR_NOTREGISTERED(server.getHostname(), "*"), msg->sfd);
-		return;
-	}
-	
 	// Check if this user is already registered (has a username set)
 	if (!newUser->getUsername().empty())
 	{
@@ -101,20 +110,27 @@ void user(t_msg *msg, Server &server)
 		return;
 	}
 	
+	// Store username and realname
 	newUser->setUsername(msg->params[0]);
 	newUser->setRealname(msg->params[3]);
 
-	// Send welcome message (NICK and USERNAME are now both set)
-	utils::sendToUser(RPL_WELCOME(server.getHostname(), newUser->getNickname(), newUser->getUsername(), server.getHostname()), msg->sfd);
+	// If NICK is already set, complete registration immediately
+	if (!newUser->getNickname().empty())
+	{
+		// Send welcome message (NICK and USERNAME are now both set)
+		utils::sendToUser(RPL_WELCOME(server.getHostname(), newUser->getNickname(), newUser->getUsername(), server.getHostname()), msg->sfd);
 
-	// Send motd
-	utils::sendToUser(RPL_MOTDSTART(server.getHostname(), newUser->getNickname()), msg->sfd);
-	utils::sendToUser(RPL_MOTD(server.getHostname(), newUser->getNickname(), "-"), msg->sfd);
-	utils::sendToUser(RPL_MOTD(server.getHostname(), newUser->getNickname(), "Welcome to IRC"), msg->sfd);
-	utils::sendToUser(RPL_ENDOFMOTD(server.getHostname(), newUser->getNickname()), msg->sfd);
+		// Send motd
+		utils::sendToUser(RPL_MOTDSTART(server.getHostname(), newUser->getNickname()), msg->sfd);
+		utils::sendToUser(RPL_MOTD(server.getHostname(), newUser->getNickname(), "-"), msg->sfd);
+		utils::sendToUser(RPL_MOTD(server.getHostname(), newUser->getNickname(), "Welcome to IRC"), msg->sfd);
+		utils::sendToUser(RPL_ENDOFMOTD(server.getHostname(), newUser->getNickname()), msg->sfd);
 
-	// Mark user as registered
-	newUser->completeInfo(true);
+		// Mark user as registered
+		newUser->completeInfo(true);
+	}
+	// Else: NICK hasn't been set yet, so we store username/realname and wait for NICK
+	// Registration will be completed in NICK handler when it's set
 }
 static void channmsg(t_msg *msg, Server &server);
 void privmsg(t_msg *msg, Server &server)
@@ -158,7 +174,9 @@ static void channmsg(t_msg *msg, Server &server)
 	const std::map<int, User *>& users = target->getUsers();
 	for (std::map<int, User *>::const_iterator it = users.begin(); it != users.end(); ++it)
 	{
-		utils::sendToUser(PRIVMSG(sender->getNickname(), sender->getUsername(), msg->hostname, msg->params[0], message), it->second);
+		// Don't send message back to the sender
+		if (it->first != msg->sfd)
+			utils::sendToUser(PRIVMSG(sender->getNickname(), sender->getUsername(), msg->hostname, msg->params[0], message), it->second);
 	}
 }
 
@@ -265,6 +283,67 @@ void join(t_msg *msg, Server &server)
 	}
 	utils::sendToUser(RPL_NAMREPLY(server.getHostname(), msg->nickname, channel_name, names_list), msg->sfd);
 	utils::sendToUser(RPL_ENDOFNAMES(server.getHostname(), msg->nickname, channel_name), msg->sfd);
+}
+
+void part(t_msg *msg, Server &server)
+{
+	// Check if user is registered
+	std::map<int, User *>::const_iterator user_it = server.getUsers().find(msg->sfd);
+	if (user_it == server.getUsers().end() || !user_it->second->getCompleteInfo())
+	{
+		utils::sendToUser(ERR_NOTREGISTERED(server.getHostname(), msg->nickname), msg->sfd);
+		return;
+	}
+
+	User *user = user_it->second;
+
+	// Check if parameters are provided
+	if (msg->params.size() < 1)
+	{
+		utils::sendToUser(ERR_NEEDMOREPARAMS(server.getHostname(), msg->nickname, msg->command), msg->sfd);
+		return;
+	}
+
+	std::string channel_name = msg->params[0];
+
+	// Get channel before leaving to broadcast PART notification
+	const std::map<std::string, Channel>& channels = server.getChannels();
+	std::map<std::string, Channel>::const_iterator ch_it = channels.find(channel_name);
+	
+	if (ch_it == channels.end())
+	{
+		// Channel doesn't exist
+		utils::sendToUser(ERR_NOSUCHCHANNEL(server.getHostname(), msg->nickname, channel_name), msg->sfd);
+		return;
+	}
+
+	// Get COPY of list of users BEFORE leaving the channel (in case channel gets deleted)
+	const Channel &channel = ch_it->second;
+	std::map<int, User *> users_in_channel_copy = channel.getUsers();
+	
+	// Check if user is in the channel
+	if (users_in_channel_copy.find(msg->sfd) == users_in_channel_copy.end())
+	{
+		// User not in channel
+		utils::sendToUser(ERR_NOTONCHANNEL(server.getHostname(), msg->nickname, channel_name), msg->sfd);
+		return;
+	}
+
+	// Try to leave the channel
+	int part_result = server.leaveChannel(*user, channel_name);
+	
+	if (part_result != 0)
+	{
+		// Error occurred
+		utils::sendToUser(ERR_NOSUCHCHANNEL(server.getHostname(), msg->nickname, channel_name), msg->sfd);
+		return;
+	}
+
+	// Send PART notification to all users who were in the channel (including the departing user)
+	for (std::map<int, User *>::const_iterator it = users_in_channel_copy.begin(); it != users_in_channel_copy.end(); ++it)
+	{
+		utils::sendToUser(PART(user->getNickname(), user->getUsername(), msg->hostname, channel_name, ""), it->second);
+	}
 }
 
 /*	./a.out localhost 6666
