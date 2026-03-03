@@ -1,5 +1,7 @@
 #include "commands.hpp"
 #include "utils.hpp"
+#include <climits>
+#include <cstdlib>
 
 void cap(t_msg *msg, Server &server)
 {
@@ -16,7 +18,7 @@ void cap(t_msg *msg, Server &server)
 	// CAP END response
 	else if (msg->params[0] == "END")
 	{
-		// Client acknowledges CAP, connection can proceed
+		return;
 	}
 }
 
@@ -235,6 +237,11 @@ void join(t_msg *msg, Server &server)
 		utils::sendToUser(ERR_BADCHANNELKEY(server.getHostname(), msg->nickname, channel_name), msg->sfd);
 		return;
 	}
+	else if (join_result == 4)
+	{
+		utils::sendToUser(ERR_INVITEONLYCHAN(server.getHostname(), msg->nickname, channel_name), msg->sfd);
+		return;
+	}
 	else if (join_result != 0)
 	{
 		utils::sendToUser(ERR_NOSUCHCHANNEL(server.getHostname(), msg->nickname, channel_name), msg->sfd);
@@ -449,23 +456,268 @@ void invite(t_msg *msg, Server &server)
 	// Send INVITE notification to the target
 	utils::sendToUser(INVITE(sender->getNickname(), sender->getUsername(), msg->hostname, target->getNickname(), channel_name), target);
 	
+	// Add target to whitelist if channel is invite-only
+	if (channel->isWhitelisted())
+		channel->addToWhitelist(*target);
+	
 	// Send RPL_INVITING to the sender
 	utils::sendToUser(RPL_INVITING(server.getHostname(), msg->nickname, channel_name, target->getNickname()), msg->sfd);
 }
 
-/*	./a.out localhost 6666
-	ai_flags: 0
-	ai_family: 2
-	ai_socktype: 1
-	ai_protocol: 6
-	ai_addrlen: 16
-	ai_addr->sa_data: 26.10.127.0.0.1.0.0.0.0.0.0.0.0.
-	ai_canonname: (null)
-	sfd: 3, read_sfd: 4
-	CAP LS
-	PASS motdepasse
-	NICK ocgraf
-		// nickname
-	USER ocgraf ocgraf localhost :Octave Graf
-		// username hostname servername realname
-*/
+static int mode_i(bool add_mode, Channel *channel, std::string &mode_result);
+static int mode_t_(bool add_mode, Channel *channel, std::string &mode_result); // name different due to conflicts during compilation
+static int mode_k(bool add_mode, Channel *channel, t_msg *msg, Server &server, size_t &param_index, std::string &mode_result, std::string &mode_params_result);
+static int mode_o(bool add_mode, Channel *channel, t_msg *msg, Server &server, size_t &param_index, std::string &mode_result, std::string &mode_params_result);
+static int mode_l(bool add_mode, Channel *channel, t_msg *msg, Server &server, size_t &param_index, std::string &mode_result, std::string &mode_params_result);
+
+void mode(t_msg *msg, Server &server)
+{
+	if (msg->params.size() < 2)
+	{
+		utils::sendToUser(ERR_NEEDMOREPARAMS(server.getHostname(), msg->nickname, msg->command), msg->sfd);
+		return;
+	}
+
+	std::string channel_name = msg->params[0];
+	Channel *channel = utils::searchChannel(channel_name, server.getChannels());
+	if (!channel)
+	{
+		utils::sendToUser(ERR_NOSUCHCHANNEL(server.getHostname(), msg->nickname, channel_name), msg->sfd);
+		return;
+	}
+
+	std::map<int, User *>::const_iterator sender_it = server.getUsers().find(msg->sfd);
+	if (sender_it == server.getUsers().end())
+		return;
+
+	User *sender = sender_it->second;
+	
+	// Check if sender is in this channel and is operator
+	if (!channel->isUser(*sender) || !channel->isOperator(*sender))
+	{
+		utils::sendToUser(ERR_CHANOPRIVSNEEDED(server.getHostname(), msg->nickname, channel_name), msg->sfd);
+		return;
+	}
+
+	std::string modes = msg->params[1];
+	bool add_mode;
+	if (msg->params[1][0] == '+')
+		add_mode = true;
+	else if (msg->params[1][0] == '-')
+		add_mode = false;
+	else
+	{
+		utils::sendToUser(ERR_UNKNOWNMODE(server.getHostname(), msg->nickname, std::string(1, msg->params[1][0])), msg->sfd);
+		return;
+	}
+	size_t param_index = 2;
+	std::string mode_result = "";
+	std::string mode_params_result = "";
+	
+	for (size_t i = 1; i < modes.length(); ++i) // skipping + or - at index 0
+	{
+		char mode = modes[i];
+		std::string param = "";
+			if (param_index < msg->params.size())
+				param = msg->params[param_index];
+			int result = 0;
+			switch(mode)
+			{
+				case 'i':
+					result = mode_i(add_mode, channel, mode_result);
+					break;
+				case 't':
+					result = mode_t_(add_mode, channel, mode_result);
+					break;
+				case 'k':
+					result = mode_k(add_mode, channel, msg, server, param_index, mode_result, mode_params_result);
+					break;
+				case 'o':
+					result = mode_o(add_mode, channel, msg, server, param_index, mode_result, mode_params_result);
+					break;
+				case 'l':
+					result = mode_l(add_mode, channel, msg, server, param_index, mode_result, mode_params_result);
+					break;
+				default:
+					utils::sendToUser(ERR_UNKNOWNMODE(server.getHostname(), msg->nickname, std::string(1, mode)), msg->sfd);
+					return;
+			}
+			if (result != 0)
+				return;
+	}
+	
+	// Send MODE notification to all users in the channel
+	const std::map<int, User *>& users = channel->getUsers();
+	for (std::map<int, User *>::const_iterator it = users.begin(); it != users.end(); ++it)
+	{
+		utils::sendToUser(MODE(sender->getNickname(), sender->getUsername(), msg->hostname, channel_name, mode_result, mode_params_result), it->second);
+	}
+}
+
+static int mode_i(bool add_mode, Channel *channel, std::string &mode_result)
+{
+	channel->setWhitelisted(add_mode);
+	
+	// If removing invite-only mode, clear the whitelist
+	if (!add_mode)
+		channel->clearWhitelist();
+	
+	mode_result += 'i';
+	return 0;
+}
+
+static int mode_t_(bool add_mode, Channel *channel, std::string &mode_result)
+{
+	channel->setTopicRestricted(add_mode);
+	mode_result += 't';
+	return 0;
+}
+
+static int mode_k(bool add_mode, Channel *channel, t_msg *msg, Server &server, size_t &param_index, std::string &mode_result, std::string &mode_params_result)
+{
+	if (add_mode)
+	{
+		if (param_index >= msg->params.size())
+		{
+			utils::sendToUser(ERR_NEEDMOREPARAMS(server.getHostname(), msg->nickname, msg->command), msg->sfd);
+			return -1;
+		}
+		channel->setPassword(msg->params[param_index]);
+		if (!mode_params_result.empty())
+			mode_params_result += " ";
+		mode_params_result += msg->params[param_index];
+		++param_index;
+		mode_result += 'k';
+	}
+	else
+	{
+		channel->setPassword("");
+		mode_result += 'k';
+	}
+	return 0;
+}
+
+static int mode_o(bool add_mode, Channel *channel, t_msg *msg, Server &server, size_t &param_index, std::string &mode_result, std::string &mode_params_result)
+{
+	if (param_index >= msg->params.size())
+	{
+		utils::sendToUser(ERR_NEEDMOREPARAMS(server.getHostname(), msg->nickname, msg->command), msg->sfd);
+		return -1;
+	}
+	
+	User *target = utils::searchUser(msg->params[param_index], channel->getUsers());
+	if (!target)
+	{
+		utils::sendToUser(ERR_USERNOTINCHANNEL(server.getHostname(), msg->nickname, msg->params[param_index], msg->params[0]), msg->sfd);
+		++param_index;
+		return -1;
+	}
+	
+	if (add_mode)
+		channel->addOP(*target);
+	else
+		channel->removeOP(*target);
+	
+	if (!mode_params_result.empty())
+		mode_params_result += " ";
+	mode_params_result += msg->params[param_index];
+	++param_index;
+	mode_result += 'o';
+	return 0;
+}
+
+static int mode_l(bool add_mode, Channel *channel, t_msg *msg, Server &server, size_t &param_index, std::string &mode_result, std::string &mode_params_result)
+{
+	if (add_mode)
+	{
+		if (param_index >= msg->params.size())
+		{
+			utils::sendToUser(ERR_NEEDMOREPARAMS(server.getHostname(), msg->nickname, msg->command), msg->sfd);
+			return -1;
+		}
+		
+		std::string limit_str = msg->params[param_index];
+		unsigned int limit = std::atoi(limit_str.c_str());
+		
+		if (limit > 0)
+		{
+			channel->setMaxUsers(limit);
+			if (!mode_params_result.empty())
+				mode_params_result += " ";
+			mode_params_result += limit_str;
+			mode_result += 'l';
+		}
+		++param_index;
+	}
+	else
+	{
+		channel->setMaxUsers(0);
+		mode_result += 'l';
+	}
+	return 0;
+}
+
+void topic(t_msg *msg, Server &server)
+{
+	// Check if user is registered
+	std::map<int, User *>::const_iterator user_it = server.getUsers().find(msg->sfd);
+	if (user_it == server.getUsers().end() || !user_it->second->getCompleteInfo())
+	{
+		utils::sendToUser(ERR_NOTREGISTERED(server.getHostname(), msg->nickname), msg->sfd);
+		return;
+	}
+
+	User *user = user_it->second;
+
+	// Check if parameters are provided
+	if (msg->params.size() < 1)
+	{
+		utils::sendToUser(ERR_NEEDMOREPARAMS(server.getHostname(), msg->nickname, msg->command), msg->sfd);
+		return;
+	}
+
+	std::string channel_name = msg->params[0];
+
+	// Get channel
+	Channel *channel = utils::searchChannel(channel_name, server.getChannels());
+	if (!channel)
+	{
+		utils::sendToUser(ERR_NOSUCHCHANNEL(server.getHostname(), msg->nickname, channel_name), msg->sfd);
+		return;
+	}
+
+	// Check if user is in the channel
+	if (!channel->isUser(*user))
+	{
+		utils::sendToUser(ERR_NOTONCHANNEL(server.getHostname(), msg->nickname, channel_name), msg->sfd);
+		return;
+	}
+
+	// If no topic argument provided, display current topic
+	if (msg->params.size() == 1)
+	{
+		if (channel->getTopic().empty())
+			utils::sendToUser(RPL_NOTOPIC(server.getHostname(), msg->nickname, channel_name), msg->sfd);
+		else
+			utils::sendToUser(RPL_TOPIC(server.getHostname(), msg->nickname, channel_name, channel->getTopic()), msg->sfd);
+		return;
+	}
+
+	// Check permissions for setting topic (only ops if mode +t is set)
+	if (channel->isTopicRestricted() && !channel->isOperator(*user))
+	{
+		utils::sendToUser(ERR_CHANOPRIVSNEEDED(server.getHostname(), msg->nickname, channel_name), msg->sfd);
+		return;
+	}
+
+	// Set the new topic
+	std::string new_topic = msg->params[1];
+	channel->setTopic(new_topic);
+
+	// Broadcast TOPIC notification to all users in the channel
+	const std::map<int, User *>& users = channel->getUsers();
+	for (std::map<int, User *>::const_iterator it = users.begin(); it != users.end(); ++it)
+	{
+		utils::sendToUser(TOPIC(user->getNickname(), user->getUsername(), msg->hostname, channel_name, new_topic), it->second);
+	}
+}

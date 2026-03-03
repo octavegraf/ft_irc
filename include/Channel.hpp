@@ -6,15 +6,6 @@
 #include "parsing.hpp"
 #include "User.hpp"
 
-enum ChannelMode
-{
-	WHITELIST,
-	TOPIC_RESTRICTED,
-	PASSWORD_PROTECTED,
-	OPERATORS,
-	MAX_USERS
-};
-
 class Channel
 {
 	private:
@@ -28,16 +19,6 @@ class Channel
 		std::map<int, User *> _users;
 		std::map<int, User *> _whitelist;
 		std::map<int, User *> _operators;
-
-		void changePassword(const User& sender, const std::string& password);
-		void addUserRights(const User& sender, const User& target); // check error message
-		void removeUserRights(const User& sender, const User& target); // check error message
-		void changeMaxUsersLimit(const User& sender, unsigned int maxUsers);
-
-//		int sendMsg(const User& sender, const User& target, const std::string& msg);
-		void inviteUser(const User& sender, const User& target);
-		void topic(const User& sender, const std::string& param);
-		void changeMode(const User& sender, ChannelMode mode, const std::string& param);
 
 		friend std::ostream&	operator<<(std::ostream& os, const Channel& channel);
 		friend std::ostream&	operator<<(std::ostream& os, const std::map<std::string, Channel>& channels);
@@ -58,9 +39,20 @@ class Channel
 		bool isFull(void) const;
 		bool isWhitelisted(void) const;
 		bool isPasswordProtected(void) const;
+		bool isTopicRestricted(void) const;
+		unsigned int getMaxUsers(void) const;
+
 		int addUser(User *user);
 		int removeUser(const User& user);
 		int addOP(const User& user);
 		int removeOP(const User& user);
+
+		void setWhitelisted(bool value);
+		void setTopicRestricted(bool value);
+		void setPassword(const std::string& password);
+		void setMaxUsers(unsigned int max);
+		void setTopic(const std::string& topic);
+		void addToWhitelist(const User& user);
+		void clearWhitelist(void);
 		int command(t_msg *msg);
 };

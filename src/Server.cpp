@@ -124,6 +124,10 @@ int Server::joinChannel(const User& user, const std::string& channelName, const 
 	if (channel->isPasswordProtected() && password != channel->getPassword())
 		return (3); // Wrong password
 	
+	// Check if channel is invite-only (whitelist mode)
+	if (channel->isWhitelisted() && !channel->isWhitelist(user))
+		return (4); // Invite-only
+	
 	// Add user to channel first
 	channel->addUser(const_cast<User *>(&user));
 	

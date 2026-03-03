@@ -107,8 +107,9 @@ void utils::sendToUser(const std::string &message, const std::map<int, User *> &
 
 void utils::dispatchCommand(t_msg *msg, Server &server)
 {
-	const std::string commandsList[] = {"CAP", "PASS", "NICK", "USER", "PRIVMSG", "PING", "JOIN", "PART", "KICK", "INVITE"};
-	for (int i = 0; i < 11; i++)
+	const std::string 
+	commandsList[] = {"CAP", "PASS", "NICK", "USER", "PRIVMSG", "PING", "JOIN", "PART", "KICK", "INVITE", "MODE", "TOPIC"};
+	for (int i = 0; i < 12; i++)
 	{
 		if (msg->command == commandsList[i])
 		{
@@ -149,6 +150,11 @@ void utils::dispatchCommand(t_msg *msg, Server &server)
 				case 9:
 					invite(msg, server);
 					return;
+				case 10:
+					mode(msg, server);
+					return;
+				case 11:
+					topic(msg, server);
 				default:
 					utils::sendToUser(ERR_UNKNOWNCOMMAND(server.getHostname(), msg->nickname, msg->command), server.getUsers(), msg->nickname);
 					return;
