@@ -98,7 +98,7 @@ int Server::deleteChannel(const std::string& channelName)
 int Server::joinChannel(const User& user, const std::string& channelName, const std::string& password)
 {
 	std::map<std::string, Channel>::iterator it = _channels.find(channelName);
-	Channel *channel;
+	Channel *channel = NULL;
 	bool is_new_channel = false;
 
 	// If channel doesn't exist, create it
@@ -124,8 +124,20 @@ int Server::joinChannel(const User& user, const std::string& channelName, const 
 	if (channel->isPasswordProtected() && password != channel->getPassword())
 		return (3); // Wrong password
 	
-	// Add user to channel
+	// Add user to channel first
 	channel->addUser(const_cast<User *>(&user));
+	
+	// Make first user (creator) an operator
+	if (is_new_channel)
+	{
+		channel->addOP(user);
+		#ifdef DEBUG
+		std::cerr << BLUE;
+		std::cerr << "User " << user.getNickname() << " is now operator of channel " << channelName << std::endl;
+		std::cerr << RESET;
+		std::cerr << "==========" << std::endl;
+		#endif
+	}
 	return (0); // Success
 }
 

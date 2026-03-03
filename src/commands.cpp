@@ -231,19 +231,16 @@ void join(t_msg *msg, Server &server)
 	}
 	else if (join_result == 2)
 	{
-		// Channel is full
 		utils::sendToUser(ERR_CHANNELISFULL(server.getHostname(), msg->nickname, channel_name), msg->sfd);
 		return;
 	}
 	else if (join_result == 3)
 	{
-		// Wrong password
 		utils::sendToUser(ERR_BADCHANNELKEY(server.getHostname(), msg->nickname, channel_name), msg->sfd);
 		return;
 	}
 	else if (join_result != 0)
 	{
-		// Other error
 		utils::sendToUser(ERR_NOSUCHCHANNEL(server.getHostname(), msg->nickname, channel_name), msg->sfd);
 		return;
 	}
@@ -344,6 +341,62 @@ void part(t_msg *msg, Server &server)
 	{
 		utils::sendToUser(PART(user->getNickname(), user->getUsername(), msg->hostname, channel_name, ""), it->second);
 	}
+}
+
+void kick(t_msg *msg, Server &server)
+{
+	if (msg->params.size() < 2)
+	{
+		utils::sendToUser(ERR_NEEDMOREPARAMS(server.getHostname(), msg->nickname, msg->command), msg->sfd);
+		return;
+	}
+	
+	// Check if sender is channel operator
+	Channel *channel = utils::searchChannel(msg->params[0], server.getChannels());
+	if (!channel)
+	{
+		utils::sendToUser(ERR_NOSUCHCHANNEL(server.getHostname(), msg->nickname, msg->params[0]), msg->sfd);
+		return;
+	}
+	
+	// Find sender by socket fd (more reliable than nickname which can be empty)
+	std::map<int, User *>::const_iterator sender_it = server.getUsers().find(msg->sfd);
+	if (sender_it == server.getUsers().end())
+	{
+		#ifdef DEBUG
+			std::cerr << "[KICK] Sender not found in server.getUsers() for sfd: " << msg->sfd << std::endl;
+		#endif
+		return;
+	}
+	
+	User *sender = sender_it->second;
+	
+	#ifdef DEBUG
+		std::cerr << "[KICK] Sender: " << sender->getNickname() << " (sfd:" << msg->sfd << ")" << std::endl;
+		std::cerr << "[KICK] isUser: " << channel->isUser(*sender) << std::endl;
+		std::cerr << "[KICK] isOperator: " << channel->isOperator(*sender) << std::endl;
+	#endif
+	
+	// Check if sender is in this channel AND is operator
+	if (!channel->isUser(*sender) || !channel->isOperator(*sender))
+	{
+		utils::sendToUser(ERR_CHANOPRIVSNEEDED(server.getHostname(), msg->nickname, msg->params[0]), msg->sfd);
+		return;
+	}
+	if (msg->params[0][0] != '#' && msg->params[0][0] != '&')
+	{
+		utils::sendToUser(ERR_BADCHANMASK(server.getHostname(), msg->nickname, msg->params[0]), msg->sfd);
+		return;
+	}
+	
+	User *target = utils::searchUser(msg->params[1], channel->getUsers());
+	if (!target)
+	{
+		utils::sendToUser(ERR_NOSUCHNICK(server.getHostname(), msg->nickname, msg->params[1]), msg->sfd);
+		return;
+	}
+	channel->removeUser(*target);
+	utils::sendToUser(KICK(sender->getNickname(), sender->getUsername(), msg->hostname, msg->params[0], msg->params[1], (msg->params.size() > 2 ? msg->params[2] : "You have been kicked from the channel for no particular reason.")), target);
 }
 
 /*	./a.out localhost 6666

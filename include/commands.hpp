@@ -15,6 +15,8 @@ void pingpong(t_msg *msg, Server &server);
 // Channel Scope
 void join(t_msg *msg, Server &server);
 void part(t_msg *msg, Server &server);
+void kick(t_msg *msg, Server &server);
+void invite(t_msg *msg, Server &server);
 
 // User Scope
 void nick(t_msg *msg, Server &server);
