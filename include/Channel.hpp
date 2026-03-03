@@ -29,17 +29,12 @@ class Channel
 		std::map<int, User *> _whitelist;
 		std::map<int, User *> _operators;
 
-		bool	isUser(const User& user);
-		bool	isWhitelist(const User& user);
-		bool	isOperator(const User& user);
-
 		void changePassword(const User& sender, const std::string& password);
 		void addUserRights(const User& sender, const User& target); // check error message
 		void removeUserRights(const User& sender, const User& target); // check error message
 		void changeMaxUsersLimit(const User& sender, unsigned int maxUsers);
 
 //		int sendMsg(const User& sender, const User& target, const std::string& msg);
-		void kickUser(const User& sender, const User& target, const std::string& reason);
 		void inviteUser(const User& sender, const User& target);
 		void topic(const User& sender, const std::string& param);
 		void changeMode(const User& sender, ChannelMode mode, const std::string& param);
@@ -50,6 +45,11 @@ class Channel
 	public:
 		Channel(const std::string& name);
 		~Channel(void);
+
+		bool	isUser(const User& user);
+		bool	isWhitelist(const User& user);
+		bool	isOperator(const User& user);
+
 		const std::string& getName(void) const;
 		const unsigned int& getNbUsers(void) const;
 		const std::map<int, User *>& getUsers(void) const;
@@ -60,5 +60,7 @@ class Channel
 		bool isPasswordProtected(void) const;
 		int addUser(User *user);
 		int removeUser(const User& user);
+		int addOP(const User& user);
+		int removeOP(const User& user);
 		int command(t_msg *msg);
 };

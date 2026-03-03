@@ -136,14 +136,28 @@ int Channel::removeUser(const User& user)
 	return (0);
 }
 
+int Channel::addOP(const User &user)
+{
+	if (this->isUser(user) && this->isOperator(user) == false)
+		this->_operators[user.getSfd()] = const_cast<User *>(&user);
+	return 0;
+}
+
+int Channel::removeOP(const User &user)
+{
+	if (this->isOperator(user))
+		this->_operators.erase(user.getSfd());
+	return 0;
+}
+
 std::ostream&	operator<<(std::ostream& os, const Channel& channel)
 {
 	os << "**\tname: " << channel._name << std::endl;
 	os << "\tpassword: " << channel._password << std::endl;
 	os << "\ttopic: " << channel._topic << std::endl;
 	os << "\tmaxUsers: " << channel._maxUsers << std::endl;
-	os << "\tisTopicRestricted" << channel._isTopicRestricted << std::endl;
-	os << "\tisWhitelisted" << channel._isWhitelisted << std::endl;
+	os << "\tisTopicRestricted: " << channel._isTopicRestricted << std::endl;
+	os << "\tisWhitelisted: " << channel._isWhitelisted << std::endl;
 	os << "\tUsers:" << std::endl << channel._users << std::endl;
 	os << "\twhitelist:" << std::endl << channel._whitelist << std::endl;
 	os << "\toperators:" << std::endl << channel._operators << std::endl;
@@ -167,23 +181,6 @@ void sendMsg(const User& sender, const User& target, const std::string& msg)
 	sendToUser(msg.c_str(), msg.length(), target);
 	// send message to sender?
 }*/
-
-void Channel::kickUser(const User& sender, const User& target, const std::string& reason)
-{
-	if (this->isOperator(sender))
-	{
-		if (this->isUser(target))
-		{
-			this->_users.erase(target.getSfd());
-			if (reason.compare("") == 0)
-			{
-				// send message to target and all _users
-			}
-		}
-		// send message OK?
-	}
-	// send message KO?
-}
 
 void Channel::inviteUser(const User& sender, const User& target)
 {
