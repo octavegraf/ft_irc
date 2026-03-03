@@ -47,7 +47,6 @@ void nick(t_msg *msg, Server &server)
 		utils::sendToUser(ERR_NICKNAMEINUSE(server.getHostname(), client_id, msg->params[0]), msg->sfd);
 		return;
 	}
-	
 	// Find user by their socket fd
 	std::map<int, User *>::iterator it = users.find(msg->sfd);
 	if (it == users.end())
@@ -109,7 +108,6 @@ void user(t_msg *msg, Server &server)
 		utils::sendToUser(ERR_ALREADYREGISTRED(server.getHostname(), msg->nickname), msg->sfd);
 		return;
 	}
-	
 	// Store username and realname
 	newUser->setUsername(msg->params[0]);
 	newUser->setRealname(msg->params[3]);
@@ -163,7 +161,6 @@ static void channmsg(t_msg *msg, Server &server)
 		utils::sendToUser(ERR_NOSUCHCHANNEL(server.getHostname(), msg->nickname, msg->params[0]), msg->sfd);
 		return;
 	}
-	
 	// Get the sender user
 	std::map<int, User *>::const_iterator sender_it = server.getUsers().find(msg->sfd);
 	if (sender_it == server.getUsers().end())
@@ -187,7 +184,6 @@ void pingpong(t_msg *msg, Server &server)
 		utils::sendToUser(ERR_NEEDMOREPARAMS(server.getHostname(), msg->nickname, msg->command), msg->sfd);
 		return;
 	}
-	
 	// Send PONG response with the parameter received
 	utils::sendToUser(RPL_PONG(server.getHostname(), msg->params[0]), msg->sfd);
 }
@@ -350,7 +346,6 @@ void kick(t_msg *msg, Server &server)
 		utils::sendToUser(ERR_NEEDMOREPARAMS(server.getHostname(), msg->nickname, msg->command), msg->sfd);
 		return;
 	}
-	
 	// Check if sender is channel operator
 	Channel *channel = utils::searchChannel(msg->params[0], server.getChannels());
 	if (!channel)
@@ -358,7 +353,6 @@ void kick(t_msg *msg, Server &server)
 		utils::sendToUser(ERR_NOSUCHCHANNEL(server.getHostname(), msg->nickname, msg->params[0]), msg->sfd);
 		return;
 	}
-	
 	// Find sender by socket fd (more reliable than nickname which can be empty)
 	std::map<int, User *>::const_iterator sender_it = server.getUsers().find(msg->sfd);
 	if (sender_it == server.getUsers().end())
@@ -397,6 +391,66 @@ void kick(t_msg *msg, Server &server)
 	}
 	channel->removeUser(*target);
 	utils::sendToUser(KICK(sender->getNickname(), sender->getUsername(), msg->hostname, msg->params[0], msg->params[1], (msg->params.size() > 2 ? msg->params[2] : "You have been kicked from the channel for no particular reason.")), target);
+}
+
+void invite(t_msg *msg, Server &server)
+{
+	if (msg->params.size() < 2)
+	{
+		utils::sendToUser(ERR_NEEDMOREPARAMS(server.getHostname(), msg->nickname, msg->command), msg->sfd);
+		return;
+	}
+	
+	User *target = utils::searchUser(msg->params[0], server.getUsers());
+	if (!target)
+	{
+		utils::sendToUser(ERR_NOSUCHNICK(server.getHostname(), msg->nickname, msg->params[0]), msg->sfd);
+		return;
+	}
+	
+	std::string channel_name = msg->params[1];
+	
+	// Normalize channel name - add # if not present
+	if (channel_name[0] != '#' && channel_name[0] != '&')
+	{
+		utils::sendToUser(ERR_BADCHANMASK(server.getHostname(), msg->nickname, channel_name), msg->sfd);
+		return;
+	}
+	
+	Channel *channel = utils::searchChannel(channel_name, server.getChannels());
+	if (!channel)
+	{
+		utils::sendToUser(ERR_NOSUCHCHANNEL(server.getHostname(), msg->nickname, channel_name), msg->sfd);
+		return;
+	}
+	
+	std::map<int, User *>::const_iterator sender_it = server.getUsers().find(msg->sfd);
+	if (sender_it == server.getUsers().end())
+	{
+		return;
+	}
+	
+	User *sender = sender_it->second;
+	
+	// Check if sender is in this channel
+	if (!channel->isUser(*sender))
+	{
+		utils::sendToUser(ERR_NOTONCHANNEL(server.getHostname(), msg->nickname, channel_name), msg->sfd);
+		return;
+	}
+	
+	// Check if target is already in the channel
+	if (channel->isUser(*target))
+	{
+		utils::sendToUser(ERR_USERONCHANNEL(server.getHostname(), msg->nickname, msg->params[0], channel_name), msg->sfd);
+		return;
+	}
+	
+	// Send INVITE notification to the target
+	utils::sendToUser(INVITE(sender->getNickname(), sender->getUsername(), msg->hostname, target->getNickname(), channel_name), target);
+	
+	// Send RPL_INVITING to the sender
+	utils::sendToUser(RPL_INVITING(server.getHostname(), msg->nickname, channel_name, target->getNickname()), msg->sfd);
 }
 
 /*	./a.out localhost 6666

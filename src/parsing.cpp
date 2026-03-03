@@ -3,7 +3,7 @@
 
 int	parsing(std::string& buffer, const char *raw_msg, t_msg *msg)
 {
-	int sfd = msg->sfd;  // Save the sfd
+	int sfd = msg->sfd;  // Save the sfdå
 	
 	*msg = t_msg();
 	msg->sfd = sfd;  // Restore the sfd
