@@ -25,6 +25,7 @@ class Channel
 
 	public:
 		Channel(const std::string& name);
+		// Channel(const Channel& channel); // implement because of vector dynamic allocation in Server
 		~Channel(void);
 
 		bool	isUser(const User& user);

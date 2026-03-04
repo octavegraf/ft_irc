@@ -34,12 +34,12 @@ User *utils::searchUser(std::string nickname, std::map<int, User *> users)
 	{
 		if (it->second->getNickname() == nickname)
 		{
-			#ifdef DEBUG
-				std::cerr << BLUE;
-				std::cerr << "User " << nickname << " found." << std::endl;
-				std::cerr << RESET;
-				std::cerr << "==========" << std::endl;
-			#endif
+#ifdef DEBUG
+			std::cerr << BLUE;
+			std::cerr << "User " << nickname << " found." << std::endl;
+			std::cerr << RESET;
+			std::cerr << "==========" << std::endl;
+#endif
 			return (it->second);
 		}
 	}
@@ -59,12 +59,12 @@ Channel *utils::searchChannel(std::string name, const std::map<std::string, Chan
 void utils::sendToUser(const std::string &message, const int &sfd)
 {
 	struct pollfd	send_pollfd;
-	size_t			total_sent = 0;
-	size_t			to_send = message.length();
-
 	send_pollfd.fd = sfd;
 	send_pollfd.events = POLLOUT;
 	send_pollfd.revents = 0;
+
+	size_t	total_sent = 0;
+	size_t	to_send = message.length();
 	
 #ifdef DEBUG
 	std::cerr << YELLOW;
