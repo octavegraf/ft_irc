@@ -36,7 +36,7 @@ class Server
 		void			initPollfds(void);
 
 		void	addUser(int sfd);
-		void	removePollfd(int sfd);
+		void	updateLastPollfd(void);
 		void	removePollfd(int sfd);
 		void	removeUser(int sfd);
 

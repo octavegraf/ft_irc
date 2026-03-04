@@ -2,6 +2,7 @@
 #include "commands.hpp"
 #include "utils.hpp"
 #include <iomanip>
+#include "colors.hpp"
 
 Server::Server(const char *port, const char *password) :
 	_port(atoi(port)), _hostname("localhost"), _password(password), _listenSfd(getListenSfd(port)), _pollfds(), _lastPollfd(-1), _nbUsers(0), _channels(), _users()
@@ -22,7 +23,10 @@ Server::~Server(void)
 		if (this->_pollfds[i].fd != -1)
 		{
 #ifdef DEBUG
+			std::cerr << BLUE;
 			std::cerr << "close fd: " << this->_pollfds[i].fd << std::endl;
+			std::cerr << RESET;
+			std::cerr << "==========" << std::endl;
 #endif
 			close(this->_pollfds[i].fd);
 		}
@@ -30,7 +34,6 @@ Server::~Server(void)
 	for (std::map<int, User *>::iterator it=this->_users.begin(); it != this->_users.end(); it++)
 		delete it->second;
 	close(this->_listenSfd);
-
 }
 
 const std::string& Server::getHostname() const
@@ -59,8 +62,12 @@ void	Server::addUser(int sfd)
 	this->_users[sfd] = new User(sfd);
 	this->_nbUsers += 1;
 #ifdef DEBUG
+	std::cerr << BLUE;
 	std::cerr << "Adding new user to Server: " << std::endl << *(this->_users[sfd]);
+	std::cerr << RESET;
+	std::cerr << "==========" << std::endl;
 #endif
+
 }
 
 
@@ -92,7 +99,10 @@ void	Server::removePollfd(int sfd)
 void	Server::removeUser(int sfd)
 {
 #ifdef DEBUG
+	std::cerr << BLUE;
 	std::cerr << "Removing user: " << *(this->_users[sfd]) << std::endl;
+	std::cerr << RESET;
+	std::cerr << "==========" << std::endl;
 #endif
 	_users.erase(sfd);
 	this->removePollfd(sfd);
@@ -257,6 +267,7 @@ void	Server::acceptNewConnections(void)
 	if (this->_nbUsers >= CLIENT_LIMIT)
 	{
 		std::cerr << "Connexion rejected: maximum user limit reached" << std::endl; 
+		// send reject message to client?
 		close(client_sfd);
 		return ;
 	}
@@ -267,7 +278,9 @@ void	Server::acceptNewConnections(void)
 		throw std::exception();
 	}	
 #ifdef DEBUG
+	std::cerr << RED;
 	std::cerr << "Now listening on sfd: " << client_sfd << std::endl;
+	std::cerr << RESET;
 #endif
 	// add User to server's Users list
 	this->addUser(client_sfd);
@@ -315,8 +328,12 @@ void	Server::handleNewEvents(void)
 			std::string	text("");
 			this->receive(this->_pollfds[i].fd, text);
 #ifdef DEBUG
-			std::cerr << std::right << std::setw(60) << "text: " << text << std::endl;
-			std::cerr << std::left << "from user: " << std::endl << *(this->_users[this->_pollfds[i].fd]);
+			std::cerr << RED;
+			std::cerr << "Received:" << std::endl;
+			std::cerr << GREEN;
+			std::cerr << "text: " << text << std::endl;
+			std::cerr << "from user: " << std::endl << *(this->_users[this->_pollfds[i].fd]);
+			std::cerr << RESET;
 #endif
 			// get msg
 			t_msg msg;
@@ -324,13 +341,19 @@ void	Server::handleNewEvents(void)
 			while (parsing(text.c_str(), &msg) == 0)
 			{
 #ifdef DEBUG
-				std::cerr << "\t\t\t\t\t\t\t" << msg << std::endl;
+				std::cerr << GREEN;
+				std::cerr << ">>>>>>>" << msg << std::endl;
 #endif
 				// exec message
 				utils::dispatchCommand(&msg, *this);
 				handled += 1;
 				text = "";
 			}
+
+			#ifdef DEBUG
+			std::cerr << RESET;
+			std::cerr << "==========" << std::endl;
+			#endif
 		}
 	}
 }
