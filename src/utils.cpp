@@ -39,12 +39,12 @@ User *utils::searchUser(std::string nickname, std::map<int, User *> users)
 void utils::sendToUser(const std::string &message, const int &sfd)
 {
 	struct pollfd	send_pollfd;
-	size_t			total_sent = 0;
-	size_t			to_send = message.length();
-
 	send_pollfd.fd = sfd;
 	send_pollfd.events = POLLOUT;
 	send_pollfd.revents = 0;
+
+	size_t	total_sent = 0;
+	size_t	to_send = message.length();
 	
 	while (total_sent < to_send)
 	{

@@ -3,6 +3,36 @@
 #include "utils.hpp"
 #include <iomanip>
 
+Server::Server(const char *port, const char *password) :
+	_port(atoi(port)), _hostname("localhost"), _password(password), _listenSfd(getListenSfd(port)), _pollfds(), _lastPollfd(-1), _nbUsers(0), _channels(), _users()
+{
+	initPollfds();
+}
+
+Server::Server(const char *port) :
+	_port(atoi(port)), _hostname("localhost"), _password(""), _listenSfd(getListenSfd(port)), _pollfds(), _lastPollfd(-1), _nbUsers(0), _channels(), _users()
+{
+	initPollfds();
+}
+
+Server::~Server(void)
+{
+	for (int i=0; i < CLIENT_LIMIT; i++)
+	{
+		if (this->_pollfds[i].fd != -1)
+		{
+#ifdef DEBUG
+			std::cerr << "close fd: " << this->_pollfds[i].fd << std::endl;
+#endif
+			close(this->_pollfds[i].fd);
+		}
+	}
+	for (std::map<int, User *>::iterator it=this->_users.begin(); it != this->_users.end(); it++)
+		delete it->second;
+	close(this->_listenSfd);
+
+}
+
 const std::string& Server::getHostname() const
 {
 	return (this->_hostname);
@@ -23,25 +53,50 @@ const std::map<int, User *>& Server::getUsers() const
 	return (this->_users);
 }
 
-int Server::addUser(User *user)
+void	Server::addUser(int sfd)
 {
-	#ifdef DEBUG
-		std::cerr << "Adding user: " << user->getNickname() << std::endl;
-	#endif
-	_users.insert(std::pair<int, User *>(user->getSfd(), user));
-	return (0);
+	// instantiate new User and add User to server's Users list
+	this->_users[sfd] = new User(sfd);
+	this->_nbUsers += 1;
+#ifdef DEBUG
+	std::cerr << "Adding new user to Server: " << std::endl << *(this->_users[sfd]);
+#endif
 }
 
-int Server::removeUser(User *user)
+
+void	Server::updateLastPollfd(void)
 {
-	#ifdef DEBUG
-		std::cerr << "Removing user: " << user->getNickname() << std::endl;
-	#endif
-	_users.erase(user->getSfd());
-	return (0);
-	// @octavegraf @rchanrenous
+	for (int i=0; i < CLIENT_LIMIT; i++)
+	{
+		if (this->_pollfds[i].fd != -1)
+			this->_lastPollfd = i;
+	}
 }
 
+void	Server::removePollfd(int sfd)
+{
+	for (int i=0; i <= this->_lastPollfd; i++)
+	{
+		if (this->_pollfds[i].fd == sfd)
+		{
+			this->_pollfds[i].fd = -1;
+			this->_pollfds[i].events = 0;
+			this->_pollfds[i].revents = 0;
+			if (i == this->_lastPollfd)
+				this->updateLastPollfd();
+			return ;
+		}
+	}
+}
+
+void	Server::removeUser(int sfd)
+{
+#ifdef DEBUG
+	std::cerr << "Removing user: " << *(this->_users[sfd]) << std::endl;
+#endif
+	_users.erase(sfd);
+	this->removePollfd(sfd);
+}
 
 static void	fill_getaddrinfo_hints(struct addrinfo *hints, int ai_flags, int ai_family, int ai_socktype, int ai_protocol)
 {
@@ -55,29 +110,45 @@ static void	fill_getaddrinfo_hints(struct addrinfo *hints, int ai_flags, int ai_
 	hints->ai_next = NULL;
 }
 
-static int getListenSfd(const char *port)
+void	Server::initPollfds(void)
 {
+	for (int i=0; i < CLIENT_LIMIT; i++)
+	{
+		this->_pollfds[i].fd = -1;
+		this->_pollfds[i].events = 0;
+		this->_pollfds[i].revents = 0;
+	}
+}
+
+void	Server::getProtocolConnexionInfo(struct addrinfo **info, const char *port, int ai_flags, int ai_family, int ai_socktype, const char *protocol)
+{
+	struct protoent	*proto = getprotobyname(protocol);
+	if (proto == NULL)
+	{
+		std::cerr << "No such available protocol: " << protocol << std::endl;
+		throw std::exception();
+	}
+	std::cout << "protocol ID: " << (int)(proto->p_proto) << std::endl;
 	struct addrinfo	hints;
-	struct addrinfo	*res;
-	struct addrinfo	*ptr;
-	int				val;
-	int				sfd;
-	fill_getaddrinfo_hints(&hints, 0, AF_UNSPEC, SOCK_STREAM, 6); // remove TCP code hard-code
-	val = getaddrinfo("localhost", port, &hints, &res);
-	if (val != 0)
+	fill_getaddrinfo_hints(&hints, ai_flags, ai_family, ai_socktype, proto->p_proto);
+	if (getaddrinfo("localhost", port, &hints, info) != 0)
 	{
 		std::cerr << "getaddrinfo()" << std::endl;
 		throw std::exception();
 	}
-	ptr = res;
-	// attempt socket connection: socket() + bind()
+}
+
+int	Server::bindPort(struct addrinfo *info)
+{
+	struct addrinfo	*ptr = info;
+	int	sfd;
 	while (ptr != NULL)
 	{
 		//addr_print_info(ptr);
 		sfd = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
 		if (sfd == -1)
 		{
-			freeaddrinfo(res);
+			freeaddrinfo(info);
 			std::cerr << "socket()" << std::endl;
 			throw std::exception();
 		}
@@ -85,7 +156,7 @@ static int getListenSfd(const char *port)
 		int flags = fcntl(sfd, F_GETFL, 0);
 		if (flags == -1 || fcntl(sfd, F_SETFL, flags | O_NONBLOCK) == -1)
 		{
-			freeaddrinfo(res);
+			freeaddrinfo(info);
 			close(sfd);
 			std::cerr << "fcntl() - setting non-blocking" << std::endl;
 			throw std::exception();
@@ -97,58 +168,30 @@ static int getListenSfd(const char *port)
 	}
 	if (ptr == NULL)
 	{
-		freeaddrinfo(res);
+		freeaddrinfo(info);
 		std::cerr << "Unable to bind to port." << std::endl;
 		throw std::exception();
 	}
-	if (ptr->ai_protocol == 6 && listen(sfd, CLIENT_LIMIT) != 0) // remove TCP code hard-code
-	{
-		freeaddrinfo(res);
-		std::cerr << "listen()" << std::endl;
-		throw std::exception();
-	}
-	freeaddrinfo(res); // save ai_protocol info? (listen() call)
 	return (sfd);
 }
 
-Server::Server(const char *port, const char *password) :
-	_port(atoi(port)), _hostname("localhost"), _password(password), _listenSfd(getListenSfd(port)), _pollfds(), _nbUsers(0), _channels(), _users() 
+int Server::getListenSfd(const char *port)
 {
-	for (int i=0; i < CLIENT_LIMIT; i++)
-	{
-		this->_pollfds[i].fd = -1;
-		this->_pollfds[i].events = 0;
-		this->_pollfds[i].revents = 0;
-	}
-}
+	struct addrinfo	*info = NULL;
+	Server::getProtocolConnexionInfo(&info, port, 0, AF_UNSPEC, SOCK_STREAM, "TCP");
 
-Server::Server(const char *port) :
-	_port(atoi(port)), _hostname("localhost"), _password(""), _listenSfd(getListenSfd(port)), _pollfds(), _nbUsers(0), _channels(), _users() 
-{
-	for (int i=0; i < CLIENT_LIMIT; i++)
+	// attempt socket connection: socket() + bind()
+	int	sfd = Server::bindPort(info);
+	freeaddrinfo(info);
+	//if (ptr->ai_protocol == 6 && listen(sfd, CLIENT_LIMIT) != 0) // remove TCP code hard-code
+	if (listen(sfd, CLIENT_LIMIT) != 0)
 	{
-		this->_pollfds[i].fd = -1;
-		this->_pollfds[i].events = 0;
-		this->_pollfds[i].revents = 0;
+		close(sfd);
+		std::cerr << "listen()" << std::endl;
+		throw std::exception();
 	}
-}
-
-Server::~Server(void)
-{
-	for (int i=0; i < CLIENT_LIMIT; i++)
-	{
-		if (this->_pollfds[i].fd != -1)
-		{
-#ifdef DEBUG
-			std::cerr << "close fd: " << this->_pollfds[i].fd << std::endl;
-#endif
-			close(this->_pollfds[i].fd);
-		}
-	}
-	for (std::map<int, User *>::iterator it=this->_users.begin(); it != this->_users.end(); it++)	
-		delete it->second;
-	close(this->_listenSfd);
-
+	// save ai_protocol info? (listen() call)
+	return (sfd);
 }
 
 /*
@@ -193,6 +236,8 @@ void	Server::addPollfd(int client_sfd)
 			this->_pollfds[i].fd = client_sfd;
 			this->_pollfds[i].events = POLLIN;
 			this->_pollfds[i].revents = 0;
+			if (i > this->_lastPollfd)
+				this->_lastPollfd = i;
 			return ;
 		}
 	}
@@ -200,9 +245,7 @@ void	Server::addPollfd(int client_sfd)
 
 void	Server::acceptNewConnections(void)
 {
-	int	client_sfd;
-
-	client_sfd = accept(this->_listenSfd, NULL, NULL); // need to retrieve the client ip address?
+	int client_sfd = accept(this->_listenSfd, NULL, NULL); // need to retrieve the client ip address?
 	if (client_sfd == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) // no pending incoming connexion request
 		return ;
 	// iterate until no more pending incoming connexion request?
@@ -217,7 +260,6 @@ void	Server::acceptNewConnections(void)
 		close(client_sfd);
 		return ;
 	}
-	this->_nbUsers += 1;
 	//print_sockaddr(&addr, len);
 	if (fcntl(client_sfd, F_SETFL, O_NONBLOCK) == -1) // useful?
 	{
@@ -227,18 +269,15 @@ void	Server::acceptNewConnections(void)
 #ifdef DEBUG
 	std::cerr << "Now listening on sfd: " << client_sfd << std::endl;
 #endif
-	// instantiate new User and add User to server's Users list
-	this->_users[client_sfd] = new User(client_sfd);
-#ifdef DEBUG
-	std::cerr << "Adding new user to Server: " << std::endl << *(this->_users[client_sfd]);
-#endif
+	// add User to server's Users list
+	this->addUser(client_sfd);
 	// add new user's fd to server's list of pollfds
 	this->addPollfd(client_sfd);
 }
 
 int	Server::fetchNewEvents(void)
 {
-	int	res_poll = poll(this->_pollfds, this->_nbUsers, 0);
+	int	res_poll = poll(this->_pollfds, this->_lastPollfd + 1, 0);
 	if (res_poll == -1)
 	{
 		std::cerr << "poll()" << std::endl;
@@ -247,40 +286,46 @@ int	Server::fetchNewEvents(void)
 	return (res_poll);
 }
 
+void	Server::receive(int sfd, std::string& text)
+{
+	char	buffer[BUFFER_SIZE];
+	int	nbytes = recv(sfd, buffer, BUFFER_SIZE, 0);
+	while (nbytes > 0)
+	{
+		text.append(buffer, nbytes);
+		nbytes = recv(sfd, buffer, BUFFER_SIZE, 0);
+	}
+	if (nbytes == -1 && (errno != EAGAIN && errno != EWOULDBLOCK))
+	{
+		std::cerr << "recv()" << std::endl;
+		throw std::exception();
+	}
+}
+
 void	Server::handleNewEvents(void)
 {
 	int	nb_events = this->fetchNewEvents();
 	int	handled = 0;
-	char	buffer[BUFFER_SIZE];
-	for (int i = 0; i < CLIENT_LIMIT && handled < nb_events; i++)
+	for (int i = 0; i <= this->_lastPollfd && handled < nb_events; i++)
 	{
 		// pending incoming message
 		if (this->_pollfds[i].fd != -1 && (this->_pollfds[i].revents & POLLIN) == POLLIN)
 		{
 			// get bytes
 			std::string	text("");
-			int	nbytes = recv(this->_pollfds[i].fd, buffer, BUFFER_SIZE, 0);
-			while (nbytes > 0)
-			{
-				text.append(buffer, nbytes);
-				nbytes = recv(this->_pollfds[i].fd, buffer, BUFFER_SIZE, 0);
-			}
-			if (nbytes == -1 && (errno != EAGAIN && errno != EWOULDBLOCK))
-			{
-				throw std::exception();
-			}
-			#ifdef DEBUG
-						std::cerr << std::right << std::setw(60) << "text: " << text << std::endl;
-						std::cerr << std::left << "from user: " << std::endl << *(this->_users[this->_pollfds[i].fd]);
-			#endif
+			this->receive(this->_pollfds[i].fd, text);
+#ifdef DEBUG
+			std::cerr << std::right << std::setw(60) << "text: " << text << std::endl;
+			std::cerr << std::left << "from user: " << std::endl << *(this->_users[this->_pollfds[i].fd]);
+#endif
 			// get msg
 			t_msg msg;
 			msg.sfd = _pollfds[i].fd;
 			while (parsing(text.c_str(), &msg) == 0)
 			{
-				#ifdef DEBUG
+#ifdef DEBUG
 				std::cerr << "\t\t\t\t\t\t\t" << msg << std::endl;
-				#endif
+#endif
 				// exec message
 				utils::dispatchCommand(&msg, *this);
 				handled += 1;
@@ -292,7 +337,7 @@ void	Server::handleNewEvents(void)
 
 void	Server::printPollfds(void) const
 {
-	for (int i=0; i<CLIENT_LIMIT; i++)
+	for (int i=0; i <= this->_lastPollfd; i++)
 	{
 		if (this->_pollfds[i].fd != -1)
 		{
