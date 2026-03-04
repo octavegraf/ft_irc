@@ -1,7 +1,7 @@
 #include "User.hpp"
 
 User::User(const int sfd) : 
-	_nickname(""), _username(""), _realname(""), _sfd(sfd)
+	_nickname(""), _username(""), _realname(""), _sfd(sfd), _completeInfos(false)
 {}
 
 User::~User()

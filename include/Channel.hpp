@@ -49,6 +49,7 @@ class Channel
 
 	public:
 		Channel(const std::string& name);
+		Channel(const Channel& channel); // implement because of vector dynamic allocation in Server
 		~Channel(void);
 		const std::string& getName(void) const;
 		const unsigned int& getNbUsers(void) const;

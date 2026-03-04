@@ -25,9 +25,22 @@ class Server
 		const std::string				_password;
 		const int						_listenSfd;
 		struct pollfd					_pollfds[CLIENT_LIMIT];
+		int								_lastPollfd;
 		unsigned int					_nbUsers;
 		std::map<std::string, Channel>	_channels; 
 		std::map<int, User *>			_users; // store pointers because Channels will need to point to their users
+
+		static void	getProtocolConnexionInfo(struct addrinfo **info, const char *port, int ai_flags, int ai_family, int ai_socktype, const char *protocol);
+		static int	bindPort(struct addrinfo *info);
+		static int	getListenSfd(const char *port);
+		void			initPollfds(void);
+
+		void	addUser(int sfd);
+		void	updateLastPollfd(void);
+		void	removePollfd(int sfd);
+		void	removeUser(int sfd);
+
+		void	receive(int sfd, std::string& text);
 
 		int	createChannel(const std::string& channelName);
 		int	deleteChannel(const std::string& channelName);
@@ -39,6 +52,7 @@ class Server
 
 		void	printPollfds(void) const;
 		friend std::ostream&	operator<<(std::ostream& os, const Server& server);
+
 	public:
 		Server(const char *port);
 		Server(const char *port, const char *password);
@@ -50,8 +64,6 @@ class Server
 		const std::map<std::string, Channel>& getChannels() const;
 		const std::map<int, User *>& getUsers() const;
 
-		int addUser(User *user);
-		int removeUser(User *user);
 		int command(t_msg *msg);
 
 		// exec
