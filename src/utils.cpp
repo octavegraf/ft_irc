@@ -155,6 +155,7 @@ void utils::dispatchCommand(t_msg *msg, Server &server)
 					return;
 				case 11:
 					topic(msg, server);
+					return;
 				default:
 					utils::sendToUser(ERR_UNKNOWNCOMMAND(server.getHostname(), msg->nickname, msg->command), server.getUsers(), msg->nickname);
 					return;
