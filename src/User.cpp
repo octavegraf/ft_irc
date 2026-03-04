@@ -1,7 +1,7 @@
 #include "User.hpp"
 
 User::User(const int sfd) : 
-	_nickname(""), _username(""), _realname(""), _sfd(sfd), _completeInfos(false), _parseBuffer("")
+	_nickname(""), _username(""), _realname(""), _sfd(sfd), _completeInfos(false), _parseBuffer(""), _authenticated(false)
 {}
 
 User::~User()
@@ -38,6 +38,11 @@ bool User::getCompleteInfo(void) const
 	return (this->_completeInfos);
 }
 
+bool User::isPasswordAuthenticated(void) const
+{
+	return (this->_authenticated);
+}
+
 void User::setNickname(const std::string& nickname)
 {
 	this->_nickname = nickname;
@@ -53,16 +58,14 @@ void	User::setRealname(const std::string& realname)
 	this->_realname = realname;
 }
 
+void User::setPasswordAuthenticated(const bool& status)
+{
+	this->_authenticated = status;
+}
+
 void User::completeInfo(const bool& status)
 {
 	this->_completeInfos = status;
-}
-
-int User::command(t_msg *msg)
-{
-	// @octavegraf TODO
-	(void)msg;
-	return (0);
 }
 
 std::ostream&	operator<<(std::ostream& os, const User& user)

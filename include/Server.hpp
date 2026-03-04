@@ -52,7 +52,6 @@ class Server
 		int removeUser(User *user);
 		int joinChannel(const User& user, const std::string& channelName, const std::string& password);
 		int leaveChannel(const User& user, const std::string& channelName);
-		int command(t_msg *msg);
 
 		// exec
 		void	addPollfd(int client_sfd);

@@ -355,6 +355,11 @@ void	Server::acceptNewConnections(void)
 #endif
 	// instantiate new User and add User to server's Users list
 	this->_users[client_sfd] = new User(client_sfd);
+	
+	// If server has no password, mark user as authenticated immediately
+	// Otherwise, user must send PASS command first
+	if (this->_password.empty())
+		this->_users[client_sfd]->setPasswordAuthenticated(true);
 #ifdef DEBUG
 	std::cerr << BLUE;
 	std::cerr << "Adding new user to Server: " << std::endl << *(this->_users[client_sfd]);

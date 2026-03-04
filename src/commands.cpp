@@ -24,10 +24,29 @@ void cap(t_msg *msg, Server &server)
 
 void pass(t_msg *msg, Server &server)
 {
+	// Find the user
+	std::map<int, User *>::const_iterator it = server.getUsers().find(msg->sfd);
+	if (it == server.getUsers().end())
+		return;
+	
+	User* user = it->second;
+	
 	if (msg->params.size() < 1)
+	{
 		utils::sendToUser(ERR_PASSWDMISMATCH(server.getHostname(), msg->nickname), msg->sfd);
-	else if (msg->params[0] != server.getPassword())
+		return;
+	}
+	
+	// Check if password matches
+	if (msg->params[0] != server.getPassword())
+	{
 		utils::sendToUser(ERR_PASSWDMISMATCH(server.getHostname(), msg->nickname), msg->sfd);
+		return;
+	}
+	
+	// Password is correct - mark user as authenticated
+	user->setPasswordAuthenticated(true);
+	// No response sent on successful password authentication (per RFC 1459)
 }
 
 void nick(t_msg *msg, Server &server)
@@ -58,6 +77,14 @@ void nick(t_msg *msg, Server &server)
 	}
 	
 	User *user = it->second;
+	
+	// Check if user is authenticated (if server requires password)
+	if (!user->isPasswordAuthenticated())
+	{
+		utils::sendToUser(ERR_PASSWDMISMATCH(server.getHostname(), client_id), msg->sfd);
+		close(msg->sfd);
+		return;
+	}
 	std::string oldNickname = user->getNickname();
 	if (oldNickname.empty())
 		oldNickname = msg->params[0];
@@ -103,6 +130,14 @@ void user(t_msg *msg, Server &server)
 		return;
 	
 	User* newUser = it->second;
+	
+	// Check if user is authenticated (if server requires password)
+	if (!newUser->isPasswordAuthenticated())
+	{
+		utils::sendToUser(ERR_PASSWDMISMATCH(server.getHostname(), msg->nickname), msg->sfd);
+		close(msg->sfd);
+		return;
+	}
 	
 	// Check if this user is already registered (has a username set)
 	if (!newUser->getUsername().empty())
@@ -406,7 +441,7 @@ void invite(t_msg *msg, Server &server)
 	{
 		utils::sendToUser(ERR_NEEDMOREPARAMS(server.getHostname(), msg->nickname, msg->command), msg->sfd);
 		return;
-	}
+	}	
 	
 	User *target = utils::searchUser(msg->params[0], server.getUsers());
 	if (!target)

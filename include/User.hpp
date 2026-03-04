@@ -15,6 +15,7 @@ class User
 		int _sfd; // Socket file descriptor
 		bool _completeInfos;
 		std::string _parseBuffer; // Parsing buffer for this user
+		bool _authenticated; // Whether user passed password authentication
 
 		friend std::ostream&	operator<<(std::ostream& os, const User& user);
 		friend std::ostream&	operator<<(std::ostream& os, const std::map<int, User *>& users);
@@ -30,11 +31,12 @@ class User
 		const int& getSfd() const ;
 		std::string& getParseBuffer(void);
 		bool getCompleteInfo(void) const;
+		bool isPasswordAuthenticated(void) const;
 
 		// setters
 		void setNickname(std::string const &nickname);
 		void setUsername(std::string const &username);
 		void setRealname(std::string const &realname);
 		void completeInfo(const bool& status);
-		int command(t_msg *msg);
+		void setPasswordAuthenticated(const bool& status);
 };
