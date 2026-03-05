@@ -244,7 +244,7 @@ void	Server::addPollfd(int client_sfd)
 		if (this->_pollfds[i].fd == -1)
 		{
 			this->_pollfds[i].fd = client_sfd;
-			this->_pollfds[i].events = POLLIN;
+			this->_pollfds[i].events = POLLIN | POLLPRI;
 			this->_pollfds[i].revents = 0;
 			if (i > this->_lastPollfd)
 				this->_lastPollfd = i;
@@ -322,7 +322,7 @@ void	Server::handleNewEvents(void)
 	for (int i = 0; i <= this->_lastPollfd && handled < nb_events; i++)
 	{
 		// pending incoming message
-		if (this->_pollfds[i].fd != -1 && (this->_pollfds[i].revents & POLLIN) == POLLIN)
+		if (this->_pollfds[i].fd != -1 && ((this->_pollfds[i].revents & POLLIN) == POLLIN || (this->_pollfds[i].revents & POLLPRI) == POLLPRI))
 		{
 			// get bytes
 			std::string	text("");
@@ -337,7 +337,7 @@ void	Server::handleNewEvents(void)
 #endif
 			// get msg
 			t_msg msg;
-			msg.sfd = _pollfds[i].fd;
+			msg.sfd = this->_pollfds[i].fd;
 			while (parsing(text.c_str(), &msg) == 0)
 			{
 #ifdef DEBUG
@@ -346,6 +346,7 @@ void	Server::handleNewEvents(void)
 #endif
 				// exec message
 				utils::dispatchCommand(&msg, *this);
+				//utils::sendToUser("RECEIVED", this->_pollfds[i].fd);
 				handled += 1;
 				text = "";
 			}

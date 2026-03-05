@@ -92,7 +92,7 @@ void utils::sendToUser(const std::string &message, const std::map<int, User *> &
 void utils::dispatchCommand(t_msg *msg, Server &server)
 {
 	const std::string commandsList[] = {"CAP", "PASS", "NICK", "USER", "PRIVMSG"};
-	for (int i = 0; i < 10; i++)
+	for (int i = 0; i < 4; i++)
 	{
 		if (msg->command == commandsList[i])
 		{
@@ -118,9 +118,9 @@ void utils::dispatchCommand(t_msg *msg, Server &server)
 				case 4:
 					privmsg(msg, server);
 					return;
-				default:
+			/*	default:
 					utils::sendToUser(ERR_UNKNOWNCOMMAND(server.getHostname(), msg->nickname, msg->command), server.getUsers(), msg->nickname);
-					return;
+					return;*/
 			}
 		}
 	}
