@@ -45,10 +45,8 @@ class Server
 		int	createChannel(const std::string& channelName);
 		int	deleteChannel(const std::string& channelName);
 		int	connectUser(User& user);
-		int	disconnectUser(User& user);
+		void	disconnectUser(int client_sfd);
 		int	privateMsg(const User& sender, const User& target, const std::string& msg);
-		int	joinChannel(const User& user, const std::string& channelName, const std::string& password);
-		int	leaveChannel(const User& user, const std::string& channelName);
 
 		void	printPollfds(void) const;
 		friend std::ostream&	operator<<(std::ostream& os, const Server& server);
@@ -64,7 +62,10 @@ class Server
 		const std::map<std::string, Channel>& getChannels() const;
 		const std::map<int, User *>& getUsers() const;
 
-		int command(t_msg *msg);
+		int addUser(User *user);
+		int removeUser(User *user);
+		int joinChannel(const User& user, const std::string& channelName, const std::string& password);
+		int leaveChannel(const User& user, const std::string& channelName);
 
 		// exec
 		void	addPollfd(int client_sfd);
@@ -72,5 +73,3 @@ class Server
 		int		fetchNewEvents(void);
 		void	handleNewEvents(void);
 };
-
-

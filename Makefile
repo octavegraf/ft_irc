@@ -1,4 +1,3 @@
-#please github
 CC					=	c++
 CFLAGS				=	-Wall -Wextra -Werror -Wshadow -std=c++98 -MMD
 NAME				=	ircserv

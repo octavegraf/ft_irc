@@ -13,7 +13,12 @@ void privmsg(t_msg *msg, Server &server);
 void pingpong(t_msg *msg, Server &server);
 
 // Channel Scope
+void join(t_msg *msg, Server &server);
+void part(t_msg *msg, Server &server);
+void kick(t_msg *msg, Server &server);
+void invite(t_msg *msg, Server &server);
 void mode(t_msg *msg, Server &server);
+void topic(t_msg *msg, Server &server);
 
 // User Scope
 void nick(t_msg *msg, Server &server);

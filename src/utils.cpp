@@ -1,8 +1,14 @@
 #include "utils.hpp"
 #include "commands.hpp"
+#include <iomanip>
 #include "colors.hpp"
 
 extern bool	interrupt;
+
+void utils::debugSendRight(const std::string &message)
+{
+	std::cerr << std::right << std::setw(80) << message << std::endl;
+}
 
 static void	sigint_handler(int sig)
 {
@@ -40,6 +46,16 @@ User *utils::searchUser(std::string nickname, std::map<int, User *> users)
 	return (NULL);
 }
 
+Channel *utils::searchChannel(std::string name, const std::map<std::string, Channel>& channels)
+{
+	if (name.empty())
+		return (NULL);
+	std::map<std::string, Channel>::const_iterator it = channels.find(name);
+	if (it != channels.end())
+		return (const_cast<Channel *>(&it->second));
+	return (NULL);
+}
+
 void utils::sendToUser(const std::string &message, const int &sfd)
 {
 	struct pollfd	send_pollfd;
@@ -56,11 +72,11 @@ void utils::sendToUser(const std::string &message, const int &sfd)
 #endif
 	while (total_sent < to_send)
 	{
-		int res_poll = poll(&send_pollfd, 1, 0);
-		while (res_poll == 0)
-			res_poll = poll(&send_pollfd, 1, 0);
+		int res_poll = poll(&send_pollfd, 1, 1);
 		if (res_poll == -1)
 			throw std::exception();
+		if (res_poll == 0)
+			continue;
 		
 		ssize_t sent = send(send_pollfd.fd, message.c_str() + total_sent, to_send - total_sent, 0);
 #ifdef DEBUG
@@ -91,8 +107,9 @@ void utils::sendToUser(const std::string &message, const std::map<int, User *> &
 
 void utils::dispatchCommand(t_msg *msg, Server &server)
 {
-	const std::string commandsList[] = {"CAP", "PASS", "NICK", "USER", "PRIVMSG"};
-	for (int i = 0; i < 10; i++)
+	const std::string 
+	commandsList[] = {"CAP", "PASS", "NICK", "USER", "PRIVMSG", "PING", "JOIN", "PART", "KICK", "INVITE", "MODE", "TOPIC"};
+	for (int i = 0; i < 12; i++)
 	{
 		if (msg->command == commandsList[i])
 		{
@@ -117,6 +134,27 @@ void utils::dispatchCommand(t_msg *msg, Server &server)
 					return;
 				case 4:
 					privmsg(msg, server);
+					return;
+				case 5:
+					pingpong(msg, server);
+					return;
+				case 6:
+					join(msg, server);
+					return;
+				case 7:
+					part(msg, server);
+					return;
+				case 8:
+					kick(msg, server);
+					return;
+				case 9:
+					invite(msg, server);
+					return;
+				case 10:
+					mode(msg, server);
+					return;
+				case 11:
+					topic(msg, server);
 					return;
 				default:
 					utils::sendToUser(ERR_UNKNOWNCOMMAND(server.getHostname(), msg->nickname, msg->command), server.getUsers(), msg->nickname);

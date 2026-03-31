@@ -61,6 +61,9 @@ void	Server::addUser(int sfd)
 	// instantiate new User and add User to server's Users list
 	this->_users[sfd] = new User(sfd);
 	this->_nbUsers += 1;
+	if (this->_password.empty()) // If server has no password, mark user as authenticated immediately
+		this->_users[sfd]->setPasswordAuthenticated(true);
+
 #ifdef DEBUG
 	std::cerr << BLUE;
 	std::cerr << "Adding new user to Server: " << std::endl << *(this->_users[sfd]);
@@ -80,6 +83,91 @@ void	Server::updateLastPollfd(void)
 	}
 }
 
+int Server::createChannel(const std::string& channelName)
+{
+	if (_channels.find(channelName) != _channels.end())
+		return (-1); // Channel already exists
+	Channel newChannel(channelName);
+	_channels.insert(std::make_pair(channelName, newChannel));
+	return (0);
+}
+
+int Server::deleteChannel(const std::string& channelName)
+{
+	std::map<std::string, Channel>::iterator it = _channels.find(channelName);
+	if (it == _channels.end())
+		return (-1); // Channel doesn't exist
+	_channels.erase(it);
+	return (0);
+}
+
+int Server::joinChannel(const User& user, const std::string& channelName, const std::string& password)
+{
+	std::map<std::string, Channel>::iterator it = _channels.find(channelName);
+	Channel *channel = NULL;
+	bool is_new_channel = false;
+
+	// If channel doesn't exist, create it
+	if (it == _channels.end())
+	{
+		if (createChannel(channelName) != 0)
+			return (-1);
+		it = _channels.find(channelName);
+		is_new_channel = true;
+	}
+	
+	channel = &(it->second);
+	
+	// Check if user is already in channel
+	if (channel->getUsers().find(user.getSfd()) != channel->getUsers().end())
+		return (1); // User already in channel
+	
+	// Check if channel is full
+	if (channel->isFull())
+		return (2); // Channel is full
+	
+	// Check if channel is password protected
+	if (channel->isPasswordProtected() && password != channel->getPassword())
+		return (3); // Wrong password
+	
+	// Check if channel is invite-only (whitelist mode)
+	if (channel->isWhitelisted() && !channel->isWhitelist(user))
+		return (4); // Invite-only
+	
+	// Add user to channel first
+	channel->addUser(const_cast<User *>(&user));
+	
+	// Make first user (creator) an operator
+	if (is_new_channel)
+	{
+		channel->addOP(user);
+		#ifdef DEBUG
+		std::cerr << BLUE;
+		std::cerr << "User " << user.getNickname() << " is now operator of channel " << channelName << std::endl;
+		std::cerr << RESET;
+		std::cerr << "==========" << std::endl;
+		#endif
+	}
+	return (0); // Success
+}
+
+int Server::leaveChannel(const User& user, const std::string& channelName)
+{
+	std::map<std::string, Channel>::iterator it = _channels.find(channelName);
+	if (it == _channels.end())
+		return (-1); // Channel doesn't exist
+	
+	Channel *channel = &(it->second);
+	if (channel->removeUser(user) != 0)
+		return (1); // User not in channel
+	
+	// Delete empty channel
+	if (channel->getNbUsers() == 0)
+	{
+		_channels.erase(it);
+	}
+	return (0);
+}
 void	Server::removePollfd(int sfd)
 {
 	for (int i=0; i <= this->_lastPollfd; i++)
@@ -106,6 +194,8 @@ void	Server::removeUser(int sfd)
 #endif
 	_users.erase(sfd);
 	this->removePollfd(sfd);
+	close(sfd);
+	this->_nbUsers -= 1;
 }
 
 static void	fill_getaddrinfo_hints(struct addrinfo *hints, int ai_flags, int ai_family, int ai_socktype, int ai_protocol)
@@ -284,6 +374,12 @@ void	Server::acceptNewConnections(void)
 #endif
 	// add User to server's Users list
 	this->addUser(client_sfd);
+#ifdef DEBUG
+	std::cerr << BLUE;
+	std::cerr << "Adding new user to Server: " << std::endl << *(this->_users[client_sfd]);
+	std::cerr << RESET;
+	std::cerr << "==========" << std::endl;
+#endif
 	// add new user's fd to server's list of pollfds
 	this->addPollfd(client_sfd);
 }
@@ -338,7 +434,13 @@ void	Server::handleNewEvents(void)
 			// get msg
 			t_msg msg;
 			msg.sfd = _pollfds[i].fd;
-			while (parsing(text.c_str(), &msg) == 0)
+			
+			// Get user's parse buffer
+			User* user = this->_users[this->_pollfds[i].fd];
+			
+			int parse_return = parsing(user->getParseBuffer(), text.c_str(), &msg);
+
+			while (parse_return == 0)
 			{
 #ifdef DEBUG
 				std::cerr << GREEN;
@@ -347,7 +449,7 @@ void	Server::handleNewEvents(void)
 				// exec message
 				utils::dispatchCommand(&msg, *this);
 				handled += 1;
-				text = "";
+				parse_return = parsing(user->getParseBuffer(), "", &msg);
 			}
 
 			#ifdef DEBUG
@@ -360,7 +462,7 @@ void	Server::handleNewEvents(void)
 
 void	Server::printPollfds(void) const
 {
-	for (int i=0; i <= this->_lastPollfd; i++)
+	for (int i = 0; i <= this->_lastPollfd; i++)
 	{
 		if (this->_pollfds[i].fd != -1)
 		{
