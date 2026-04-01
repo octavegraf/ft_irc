@@ -202,39 +202,6 @@ int Server::getListenSfd(const char *port)
 
 }
 
-/*
-int Server::command(t_msg *msg)
-{
-	return (0);
-}*/
-
-/*
-int dispatchCommand(t_msg *msg, Server &server)
-{
-	// I'll do it again, im gonna use the "command.cpp now" @rchanrenous
-	const std::string serverScope[] = {"CAP", "USER"};
-	const std::string channelScope[] = {""};
-	const std::string userScope[] = {"NICK"};
-
-	for (size_t i = 0; i < sizeof(serverScope) / sizeof(std::string); ++i)
-	{
-		if (msg->command == serverScope[i])
-			return (server.command(msg));
-	}
-	for (size_t i = 0; i < sizeof(channelScope) / sizeof(std::string); ++i)
-	{
-		if (msg->command == channelScope[i])
-			return (server.getChannel(channelScope[i]).command(msg));
-	}
-	for (size_t i = 0; i < sizeof(userScope) / sizeof(std::string); ++i)
-	{
-		if (msg->command == userScope[i])
-			return (server.getUser(userScope[i]).command(msg));
-	}
-	std::cerr << "Unknown command: " << msg->command << "." << std::endl;
-	return (1);
-}*/
-
 void	Server::addPollfd(int client_sfd)
 {
 
@@ -267,9 +234,9 @@ void	Server::handleNewEvents(void)
 			// get bytes
 			std::string	text("");
 			this->receive(this->_pollfds[i].fd, text);
-#ifdef DEBUG
+			#ifdef DEBUG
 
-#endif
+			#endif
 			// get msg
 			t_msg msg;
 			msg.sfd = _pollfds[i].fd;

@@ -25,12 +25,9 @@ User *utils::searchUser(std::string nickname, std::map<int, User *> users)
 	{
 		if (it->second->getNickname() == nickname)
 		{
-#ifdef DEBUG
-			std::cerr << BLUE;
-			std::cerr << "User " << nickname << " found." << std::endl;
-			std::cerr << RESET;
-			std::cerr << "==========" << std::endl;
-#endif
+			#ifdef DEBUG
+			
+			#endif
 			return (it->second);
 		}
 	}

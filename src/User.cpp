@@ -69,12 +69,8 @@ void User::completeInfo(const bool& status)
 }
 
 std::ostream&	operator<<(std::ostream& os, const User& user)
-{
-
-}
+{}
 
 std::ostream&	operator<<(std::ostream& os, const std::map<int, User *>& users)
-{
-
-}
+{}
 
