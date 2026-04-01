@@ -1,7 +1,6 @@
 #include "utils.hpp"
 #include "commands.hpp"
 #include <iomanip>
-#include "colors.hpp"
 
 extern bool	interrupt;
 

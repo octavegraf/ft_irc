@@ -2,7 +2,6 @@
 #include "commands.hpp"
 #include "utils.hpp"
 #include <iomanip>
-#include "colors.hpp"
 
 Server::Server(const char *port, const char *password) :
 	_port(atoi(port)), _hostname("localhost"), _password(password), _listenSfd(getListenSfd(port)), _pollfds(), _lastPollfd(-1), _nbUsers(0), _channels(), _users()
