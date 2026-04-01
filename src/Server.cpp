@@ -3,14 +3,12 @@
 #include "utils.hpp"
 #include <iomanip>
 
-Server::Server(const char *port, const char *password) :
-	_port(atoi(port)), _hostname("localhost"), _password(password), _listenSfd(getListenSfd(port)), _pollfds(), _lastPollfd(-1), _nbUsers(0), _channels(), _users()
+Server::Server(const char *port, const char *password) : _port(atoi(port)), _hostname("localhost"), _password(password), _listenSfd(getListenSfd(port)), _pollfds(), _lastPollfd(-1), _nbUsers(0), _channels(), _users()
 {
 	initPollfds();
 }
 
-Server::Server(const char *port) :
-	_port(atoi(port)), _hostname("localhost"), _password(""), _listenSfd(getListenSfd(port)), _pollfds(), _lastPollfd(-1), _nbUsers(0), _channels(), _users()
+Server::Server(const char *port) : _port(atoi(port)), _hostname("localhost"), _password(""), _listenSfd(getListenSfd(port)), _pollfds(), _lastPollfd(-1), _nbUsers(0), _channels(), _users()
 {
 	initPollfds();
 }
@@ -59,11 +57,6 @@ void	Server::addUser(int sfd)
 	this->_nbUsers += 1;
 	if (this->_password.empty()) // If server has no password, mark user as authenticated immediately
 		this->_users[sfd]->setPasswordAuthenticated(true);
-
-#ifdef DEBUG
-
-#endif
-
 }
 
 
@@ -159,18 +152,16 @@ int Server::leaveChannel(const User& user, const std::string& channelName)
 	return (0);
 }
 void	Server::removePollfd(int sfd)
-{
-
-}
+{}
 
 void	Server::removeUser(int sfd)
 {
-#ifdef DEBUG
-	std::cerr << BLUE;
-	std::cerr << "Removing user: " << *(this->_users[sfd]) << std::endl;
-	std::cerr << RESET;
-	std::cerr << "==========" << std::endl;
-#endif
+	#ifdef DEBUG
+		std::cerr << BLUE;
+		std::cerr << "Removing user: " << *(this->_users[sfd]) << std::endl;
+		std::cerr << RESET;
+		std::cerr << "==========" << std::endl;
+	#endif
 	_users.erase(sfd);
 	this->removePollfd(sfd);
 	close(sfd);
@@ -178,49 +169,31 @@ void	Server::removeUser(int sfd)
 }
 
 static void	fill_getaddrinfo_hints(struct addrinfo *hints, int ai_flags, int ai_family, int ai_socktype, int ai_protocol)
-{
-
-}
+{}
 
 void	Server::initPollfds(void)
-{
-
-}
+{}
 
 void	Server::getProtocolConnexionInfo(struct addrinfo **info, const char *port, int ai_flags, int ai_family, int ai_socktype, const char *protocol)
-{
-
-}
+{}
 
 int	Server::bindPort(struct addrinfo *info)
-{
-
-}
+{}
 
 int Server::getListenSfd(const char *port)
-{
-
-}
+{}
 
 void	Server::addPollfd(int client_sfd)
-{
-
-}
+{}
 
 void	Server::acceptNewConnections(void)
-{
-
-}
+{}
 
 int	Server::fetchNewEvents(void)
-{
-
-}
+{}
 
 void	Server::receive(int sfd, std::string& text)
-{
-
-}
+{}
 
 void	Server::handleNewEvents(void)
 {
@@ -258,11 +231,7 @@ void	Server::handleNewEvents(void)
 }
 
 void	Server::printPollfds(void) const
-{
-
-}
+{}
 
 std::ostream&	operator<<(std::ostream& os, const Server& server)
-{
-
-}
+{}

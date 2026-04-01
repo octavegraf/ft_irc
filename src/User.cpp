@@ -5,8 +5,7 @@ User::User(const int sfd) :
 {}
 
 User::~User()
-{
-}
+{}
 
 const std::string& User::getNickname(void) const
 {

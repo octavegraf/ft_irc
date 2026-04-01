@@ -45,39 +45,7 @@ Channel *utils::searchChannel(std::string name, const std::map<std::string, Chan
 }
 
 void utils::sendToUser(const std::string &message, const int &sfd)
-{
-	struct pollfd	send_pollfd;
-	send_pollfd.fd = sfd;
-	send_pollfd.events = POLLOUT;
-	send_pollfd.revents = 0;
-
-	size_t	total_sent = 0;
-	size_t	to_send = message.length();
-	
-#ifdef DEBUG
-	std::cerr << YELLOW;
-	std::cerr << "Sending:" << std::endl;
-#endif
-	while (total_sent < to_send)
-	{
-		int res_poll = poll(&send_pollfd, 1, 1);
-		if (res_poll == -1)
-			throw std::exception();
-		if (res_poll == 0)
-			continue;
-		
-		ssize_t sent = send(send_pollfd.fd, message.c_str() + total_sent, to_send - total_sent, 0);
-#ifdef DEBUG
-		std::cerr << message.substr(total_sent, total_sent + sent) << std::endl;
-#endif
-		if (sent == -1)
-			throw std::exception();
-		total_sent += sent;
-	}
-#ifdef DEBUG
-	std::cerr << RESET;
-#endif
-}
+{}
 
 void utils::sendToUser(const std::string &message, const User *user)
 {
