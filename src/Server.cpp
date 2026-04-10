@@ -172,7 +172,19 @@ static void	fill_getaddrinfo_hints(struct addrinfo *hints, int ai_flags, int ai_
 {}
 
 void	Server::initPollfds(void)
-{}
+{
+	for (int i = 0; i < CLIENT_LIMIT; i++)
+	{
+		_pollfds[i].fd = -1;
+		_pollfds[i].events = 0;
+		_pollfds[i].revents = 0;
+	}
+	_pollfds[0].fd = this->_listenSfd;
+	_pollfds[0].events = POLLIN;
+	this->_lastPollfd = 0;
+
+	_lastPollfd = 0;
+}
 
 void	Server::getProtocolConnexionInfo(struct addrinfo **info, const char *port, int ai_flags, int ai_family, int ai_socktype, const char *protocol)
 {}
@@ -190,7 +202,15 @@ void	Server::acceptNewConnections(void)
 {}
 
 int	Server::fetchNewEvents(void)
-{}
+{
+	int ret = poll(this->_pollfds, this->_lastPollfd + 1, 100);
+	if ( ret == - 1)
+	{
+		std::cerr << "Error: poll failed" << std::endl;
+		throw std::exception();
+	}
+	return (ret);
+}
 
 void	Server::receive(int sfd, std::string& text)
 {}
