@@ -9,7 +9,7 @@
 #include <poll.h>
 #include <errno.h>
 #include <fcntl.h>
-
+#include <cstring>
 #include "Channel.hpp"
 #include "User.hpp"
 #include "message.hpp"

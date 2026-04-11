@@ -152,7 +152,24 @@ int Server::leaveChannel(const User& user, const std::string& channelName)
 	return (0);
 }
 void	Server::removePollfd(int sfd)
-{}
+{
+	for (int i = 1; i < CLIENT_LIMIT; i++)
+	{
+		if (this->_pollfds[i].fd == sfd)
+		{
+			this->_pollfds[i].fd = -1;
+			this->_pollfds[i].events = 0;
+			this->_pollfds[i].revents = 0;
+			if (i == this->_lastPollfd)
+			{
+				while(this->_lastPollfd >= 0 && this->_pollfds[this->_lastPollfd].fd == -1)
+					this->_lastPollfd -= 1;
+			}
+			return ;
+		}
+	}
+	std::cerr << "Error: could not find client sfd in pollfds to remove" << std::endl;
+}
 
 void	Server::removeUser(int sfd)
 {
@@ -162,10 +179,20 @@ void	Server::removeUser(int sfd)
 		std::cerr << RESET;
 		std::cerr << "==========" << std::endl;
 	#endif
-	_users.erase(sfd);
-	this->removePollfd(sfd);
+	std::map<int, User *>::iterator it = this->_users.find(sfd);
+	if (it != this->_users.end())
+	{
+		delete it->second;
+		_users.erase(it);
+		_nbUsers -= 1;
+	}
+	removePollfd(sfd);
 	close(sfd);
-	this->_nbUsers -= 1;
+}
+	// _users.erase(sfd);
+	// this->removePollfd(sfd);
+	// close(sfd);
+	// this->_nbUsers -= 1;
 }
 
 static void	fill_getaddrinfo_hints(struct addrinfo *hints, int ai_flags, int ai_family, int ai_socktype, int ai_protocol)
@@ -182,24 +209,118 @@ void	Server::initPollfds(void)
 	_pollfds[0].fd = this->_listenSfd;
 	_pollfds[0].events = POLLIN;
 	this->_lastPollfd = 0;
-
-	_lastPollfd = 0;
 }
 
 void	Server::getProtocolConnexionInfo(struct addrinfo **info, const char *port, int ai_flags, int ai_family, int ai_socktype, const char *protocol)
-{}
+{
+	struct addrinfo hints;
+	std::memset(&hints, 0, sizeof(hints));
+	hints.ai_flags = ai_flags;
+	hints.ai_family = ai_family;
+	hints.ai_socktype = ai_socktype;
+	int ret = getaddrinfo(NULL, port, &hints, info);
+	if (ret != 0)
+	{
+		std::cerr << "Error: getaddrinfo failed: " << gai_strerror(ret) << std::endl;
+		throw std::exception();
+	}
+}
 
 int	Server::bindPort(struct addrinfo *info)
-{}
+{
+	for (struct addrinfo *ptr = info; ptr != NULL; ptr = ptr->ai_next)
+	{
+		int sfd = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
+		if (sfd == -1)
+			continue ;
+		int yes = 1;
+		if (setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1)
+		{
+			close(sfd);
+			std::cerr << "Error: setsockopt failed" << std::endl;
+			continue;
+		}
+		int flags = fcntl(sfd, F_GETFL, 0);
+		if (flags == -1 || fcntl(sfd, F_SETFL, flags | O_NONBLOCK) == -1)
+		{
+			std::cerr << "Error: failed to set socket to non-blocking" << std::endl;
+			close(sfd);
+			continue ;
+		}
+		if (bind(sfd, ptr->ai_addr, ptr->ai_addrlen) == 0)
+			return (sfd);
+		close(sfd);
+	}
+	std::cerr << "Error: failed to bind to any address" << std::endl;
+	throw std::exception();
+}
 
 int Server::getListenSfd(const char *port)
-{}
+{
+	struct addrinfo *info = NULL;
+
+	getProtocolConnexionInfo(&info, port, AI_PASSIVE, AF_UNSPEC, SOCK_STREAM, "tcp");
+	int sfd = bindPort(info);
+	freeaddrinfo(info);
+
+	if (listen(sfd, SOMAXCONN) == -1)
+	{
+		std::cerr << "Error: listen failed" << std::endl;
+		close(sfd);
+		throw std::exception();
+	}
+	return (sfd);
+}
 
 void	Server::addPollfd(int client_sfd)
-{}
+{
+	for (int i = 1; i < CLIENT_LIMIT; i++)
+	{
+		if (this->_pollfds[i].fd == -1)
+		{
+			this->_pollfds[i].fd = client_sfd;
+			this->_pollfds[i].events = POLLIN;
+			this->_pollfds[i].revents = 0;
+			if (i > this->_lastPollfd)
+				this->_lastPollfd = i;
+			return ;
+		}
+	}
+	std::cerr << "Error: too many clients connected, cannot add new client" << std::endl;
+	close(client_sfd);
+}
 
 void	Server::acceptNewConnections(void)
-{}
+{
+	while(true)
+	{
+		int client_sfd = accept(this->_listenSfd, NULL, NULL);
+		if (client_sfd == -1)
+		{
+			if (errno == EWOULDBLOCK || errno == EAGAIN)
+				break ;
+			std::cerr << "Error: accept failed" << std::endl;
+			throw std::exception();
+		}
+		//limite nb clients
+		if (this->_nbUsers >= CLIENT_LIMIT - 1)
+		{
+			std::cerr << "Error: too many clients connected, rejecting new client" << std::endl;
+			close(client_sfd);
+			continue ;
+		}
+		// mettre client non bloquant
+		int flags = fcntl(client_sfd, F_GETFL, 0);
+		if (flags == -1 || fcntl(client_sfd, F_SETFL, flags | O_NONBLOCK) == -1)
+		{
+			std::cerr << "Error: failed to set client socket to non-blocking" << std::endl;
+			close(client_sfd);
+			continue ;
+		}
+		this->addUser(client_sfd);
+		this->addPollfd(client_sfd);
+	}
+}
 
 int	Server::fetchNewEvents(void)
 {
@@ -218,6 +339,59 @@ void	Server::receive(int sfd, std::string& text)
 void	Server::handleNewEvents(void)
 {
 	int	nb_events = this->fetchNewEvents();
+	if (nb_events == 0)
+		return ;
+	for (int i = 0; i <= this->_lastPollfd; i++)
+	{
+		int fd = this->_pollfds[i].fd;
+		if (fd == -1)
+			continue ;
+		short rev = this->_pollfds[i].revents;
+		if(rev == 0)
+			continue ;
+		// erreur et deco
+		if(rev & (POLLERR | POLLHUP | POLLNVAL))
+		{
+			if(fd != this->_listenSfd)
+				this->disconnectUser(fd);
+			_pollfds[i].revents = 0;
+			continue ;
+		}
+		//nouvelle connexion sur le socket listensfd
+		if (fd == this->_listenSfd && (rev & POLLIN))
+		{
+			this->acceptNewConnections();
+			_pollfds[i].revents = 0;
+			continue ;
+		}
+		//clien fd avec message en attente
+		if (rev & POLLIN)
+		{
+			std::string	text("");
+			this->receive(fd, text);
+			#ifdef DEBUG
+
+			#endif
+			std::map<int, User *>::iterator it = this->_users.find(fd);
+			if (it == this->_users.end() || it->second == NULL)
+			{
+				disconnectUser(fd);
+				_pollfds[i].revents = 0;
+				continue ;
+			}
+			User* user = it->second;
+			t_msg msg;
+			msg.sfd = fd;
+			int parse_return = parsing(user->getParseBuffer(), text.c_str(), &msg);
+			while (parse_return == 0)
+			{
+				utils::dispatchCommand(&msg, *this);
+				parse_return = parsing(user->getParseBuffer(), "", &msg);
+			}
+		}
+		_pollfds[i].revents = 0;
+	}
+	/*
 	int	handled = 0;
 	for (int i = 0; i <= this->_lastPollfd && handled < nb_events; i++)
 	{
@@ -248,6 +422,7 @@ void	Server::handleNewEvents(void)
 			}
 		}
 	}
+	*/
 }
 
 void	Server::printPollfds(void) const
