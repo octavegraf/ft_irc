@@ -188,7 +188,7 @@ void	Server::removeUser(int sfd)
 	}
 	removePollfd(sfd);
 	close(sfd);
-}
+
 	// _users.erase(sfd);
 	// this->removePollfd(sfd);
 	// close(sfd);
