@@ -27,7 +27,7 @@ Server::~Server(void)
 	}
 	for (std::map<int, User *>::iterator it=this->_users.begin(); it != this->_users.end(); it++)
 		delete it->second;
-	close(this->_listenSfd);
+	// close(this->_listenSfd);
 }
 
 const std::string& Server::getHostname() const
@@ -195,8 +195,8 @@ void	Server::removeUser(int sfd)
 	// this->_nbUsers -= 1;
 }
 
-static void	fill_getaddrinfo_hints(struct addrinfo *hints, int ai_flags, int ai_family, int ai_socktype, int ai_protocol)
-{}
+// static void	fill_getaddrinfo_hints(struct addrinfo *hints, int ai_flags, int ai_family, int ai_socktype, int ai_protocol)
+// {}
 
 void	Server::initPollfds(void)
 {
@@ -213,6 +213,8 @@ void	Server::initPollfds(void)
 
 void	Server::getProtocolConnexionInfo(struct addrinfo **info, const char *port, int ai_flags, int ai_family, int ai_socktype, const char *protocol)
 {
+	(void)protocol;
+
 	struct addrinfo hints;
 	std::memset(&hints, 0, sizeof(hints));
 	hints.ai_flags = ai_flags;
@@ -302,6 +304,7 @@ void	Server::acceptNewConnections(void)
 			std::cerr << "Error: accept failed" << std::endl;
 			throw std::exception();
 		}
+		std::cerr << "ACCEPT client fd=" << client_sfd << std::endl;
 		//limite nb clients
 		if (this->_nbUsers >= CLIENT_LIMIT - 1)
 		{
@@ -327,14 +330,58 @@ int	Server::fetchNewEvents(void)
 	int ret = poll(this->_pollfds, this->_lastPollfd + 1, 100);
 	if ( ret == - 1)
 	{
+		if (errno == EINTR)
+			return (0); // ctrl c no errror
 		std::cerr << "Error: poll failed" << std::endl;
 		throw std::exception();
 	}
 	return (ret);
 }
+// 1 = ok 0 = client fermer -1 = erreur
+int	Server::receive(int sfd, std::string& text)
+{
+	char buffer[BUFFER_SIZE];
+	
+	while(true)
+	{
+		int n = recv(sfd, buffer, BUFFER_SIZE, 0);
+		if (n > 0)
+			text.append(buffer, n);
+		else if (n == 0)
+			return (0);
+		else
+		{
+			if (errno == EWOULDBLOCK || errno == EAGAIN)
+				return (1) ;
+			std::cerr << "Error: recv failed" << std::endl;
+			return (-1);
+		}
+	}
+}
 
-void	Server::receive(int sfd, std::string& text)
-{}
+void Server::disconnectUser(int client_sfd)
+{
+	std::map<int, User *>::iterator uit = this->_users.find(client_sfd);
+	if (uit == this->_users.end() || uit->second == NULL)
+	{
+		removePollfd(client_sfd);
+		close(client_sfd);
+		return ;
+	}
+	User* user = uit->second;
+	for (std::map<std::string, Channel>::iterator chan_it = this->_channels.begin(); chan_it != this->_channels.end();)
+	{
+			Channel& channel = chan_it->second;
+			if (channel.getUsers().find(client_sfd) != channel.getUsers().end())
+				channel.removeUser(*user);
+			if (channel.getNbUsers() == 0)
+				this->_channels.erase(chan_it++);
+			else
+				++chan_it;
+		
+	}
+	this->removeUser(client_sfd);
+}
 
 void	Server::handleNewEvents(void)
 {
@@ -367,8 +414,9 @@ void	Server::handleNewEvents(void)
 		//clien fd avec message en attente
 		if (rev & POLLIN)
 		{
-			std::string	text("");
-			this->receive(fd, text);
+			std::string	text;
+			int r = this->receive(fd, text);
+		
 			#ifdef DEBUG
 
 			#endif
@@ -379,12 +427,21 @@ void	Server::handleNewEvents(void)
 				_pollfds[i].revents = 0;
 				continue ;
 			}
+			if (r <= 0)
+			{
+				disconnectUser(fd);
+				_pollfds[i].revents = 0;
+				continue ;
+			}
+			if(!text.empty())
+				std::cerr << "Received message from fd " << fd << ": " << text << std::endl;
 			User* user = it->second;
 			t_msg msg;
 			msg.sfd = fd;
 			int parse_return = parsing(user->getParseBuffer(), text.c_str(), &msg);
 			while (parse_return == 0)
 			{
+				std::cerr << "CMD: " << msg.command << " from " << msg.nickname << "\n";
 				utils::dispatchCommand(&msg, *this);
 				parse_return = parsing(user->getParseBuffer(), "", &msg);
 			}
@@ -428,5 +485,5 @@ void	Server::handleNewEvents(void)
 void	Server::printPollfds(void) const
 {}
 
-std::ostream&	operator<<(std::ostream& os, const Server& server)
-{}
+// std::ostream&	operator<<(std::ostream& os, const Server& server)
+// {}

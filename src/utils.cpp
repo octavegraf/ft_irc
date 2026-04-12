@@ -11,10 +11,25 @@ void utils::debugSendRight(const std::string &message)
 
 static void	sigint_handler(int sig)
 {
+	(void)sig;
+	interrupt = true;
 }
 
 int	utils::setup_signal_action(struct sigaction *sa)
 {
+	if (!sa)
+		return (-1);
+	std::memset(sa, 0, sizeof(*sa));
+	sa->sa_handler = sigint_handler;
+	sigemptyset(&sa->sa_mask);
+	sa->sa_flags = 0;
+
+	if (sigaction(SIGINT, sa, NULL) == -1)
+	{
+		std::cerr << "Error: failed to set up SIGINT handler" << std::endl;
+		return (-1);
+	}
+	return (0);
 }
 
 User *utils::searchUser(std::string nickname, std::map<int, User *> users)
@@ -45,7 +60,27 @@ Channel *utils::searchChannel(std::string name, const std::map<std::string, Chan
 }
 
 void utils::sendToUser(const std::string &message, const int &sfd)
-{}
+{
+	if(sfd < 0)
+		return ;
+	
+	std::string out = message;
+	if(out.size() < 2 || out.substr(out.size() - 2) != "\r\n")
+		out += "\r\n";
+	const char* buf = out.c_str();
+	size_t totalSent = 0;
+	size_t len = out.size();
+	while (totalSent < len)
+	{
+		ssize_t sent = send(sfd, buf + totalSent, len - totalSent, 0);
+		if(sent > 0)
+			totalSent += static_cast<size_t>(sent);
+		else if (sent == -1 && (errno == EWOULDBLOCK || errno == EAGAIN))
+			break;
+		else
+			break;
+	}
+}
 
 void utils::sendToUser(const std::string &message, const User *user)
 {

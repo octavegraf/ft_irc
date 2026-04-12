@@ -80,7 +80,10 @@ int Channel::removeUser(const User& user)
 	if (this->_users.find(user.getSfd()) == this->_users.end())
 		return (-1); // User not in channel
 	this->_users.erase(user.getSfd());
-	this->_nbUsers--;
+	_operators.erase(user.getSfd());
+	_whitelist.erase(user.getSfd());
+	if (this->_nbUsers > 0)
+		this->_nbUsers--;
 	return (0);
 }
 
@@ -143,10 +146,13 @@ void Channel::clearWhitelist(void)
 
 std::ostream&	operator<<(std::ostream& os, const Channel& channel)
 {
+	(void)channel;
 	return (os);
 }
 
 std::ostream& operator<<(std::ostream& os, const std::map<std::string, Channel>& channels)
 {
+	(void)channels;
+
 	return (os);
 }

@@ -61,7 +61,7 @@ int	main(int argc, char **argv)
 		try
 		{
 			// accept connection requests: create new user + update server user list + store user fd in pollfd tab
-			server->acceptNewConnections();
+			//server->acceptNewConnections();
 
 			// iterate on the fds to find events to handle with dispatchCommand()
 			server->handleNewEvents();
