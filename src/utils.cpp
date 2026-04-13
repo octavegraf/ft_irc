@@ -105,9 +105,9 @@ void utils::dispatchCommand(t_msg *msg, Server &server)
 		if (msg->command == commandsList[i])
 		{
 #ifdef DEBUG
-			std::cerr << RED;
+			//std::cerr << RED;
 			std::cerr << "Executing command: " << msg->command << std::endl;
-			std::cerr << RESET;
+			//std::cerr << RESET;
 #endif
 			switch (i)
 			{
@@ -153,4 +153,12 @@ void utils::dispatchCommand(t_msg *msg, Server &server)
 			}
 		}
 	}
+}
+
+std::ostream& operator<<(std::ostream& os, const User& user)
+{
+    os << "User[nick=" << user.getNickname()
+       << ", user=" << user.getUsername()
+       << ", sfd=" << user.getSfd() << "]";
+    return os;
 }

@@ -204,6 +204,11 @@ static void channmsg(t_msg *msg, Server &server)
 		return;
 	
 	User *sender = sender_it->second;
+	if (!target->isUser(*sender))
+	{
+		utils::sendToUser(ERR_NOTONCHANNEL(server.getHostname(), sender->getNickname(), msg->params[0]), msg->sfd);
+		return;
+	}
 	std::string message = msg->params[1];
 	const std::map<int, User *>& users = target->getUsers();
 	for (std::map<int, User *>::const_iterator it = users.begin(); it != users.end(); ++it)
@@ -240,7 +245,7 @@ void join(t_msg *msg, Server &server)
 	// Check if parameters are provided
 	if (msg->params.size() < 1)
 	{
-		utils::sendToUser(ERR_NEEDMOREPARAMS(server.getHostname(), msg->nickname, msg->command), msg->sfd);
+		utils::sendToUser(ERR_NEEDMOREPARAMS(server.getHostname(), user->getNickname(), msg->command), msg->sfd);
 		return;
 	}
 
@@ -250,7 +255,7 @@ void join(t_msg *msg, Server &server)
 	// Check if channel name starts with # or &
 	if (channel_name[0] != '#' && channel_name[0] != '&')
 	{
-		utils::sendToUser(ERR_BADCHANMASK(server.getHostname(), msg->nickname, channel_name), msg->sfd);
+		utils::sendToUser(ERR_BADCHANMASK(server.getHostname(), user->getNickname(), channel_name), msg->sfd);
 		return;
 	}
 
@@ -264,17 +269,17 @@ void join(t_msg *msg, Server &server)
 	}
 	else if (join_result == 2)
 	{
-		utils::sendToUser(ERR_CHANNELISFULL(server.getHostname(), msg->nickname, channel_name), msg->sfd);
+		utils::sendToUser(ERR_CHANNELISFULL(server.getHostname(), user->getNickname(), channel_name), msg->sfd);
 		return;
 	}
 	else if (join_result == 3)
 	{
-		utils::sendToUser(ERR_BADCHANNELKEY(server.getHostname(), msg->nickname, channel_name), msg->sfd);
+		utils::sendToUser(ERR_BADCHANNELKEY(server.getHostname(), user->getNickname(), channel_name), msg->sfd);
 		return;
 	}
 	else if (join_result == 4)
 	{
-		utils::sendToUser(ERR_INVITEONLYCHAN(server.getHostname(), msg->nickname, channel_name), msg->sfd);
+		utils::sendToUser(ERR_INVITEONLYCHAN(server.getHostname(), user->getNickname(), channel_name), msg->sfd);
 		return;
 	}
 	else if (join_result != 0)
@@ -301,11 +306,11 @@ void join(t_msg *msg, Server &server)
 	// Send channel topic to the new user
 	if (!channel.getTopic().empty())
 	{
-		utils::sendToUser(RPL_TOPIC(server.getHostname(), msg->nickname, channel_name, channel.getTopic()), msg->sfd);
+		utils::sendToUser(RPL_TOPIC(server.getHostname(), user->getNickname(), channel_name, channel.getTopic()), msg->sfd);
 	}
 	else
 	{
-		utils::sendToUser(RPL_NOTOPIC(server.getHostname(), msg->nickname, channel_name), msg->sfd);
+		utils::sendToUser(RPL_NOTOPIC(server.getHostname(), user->getNickname(), channel_name), msg->sfd);
 	}
 
 	// Send NAMES reply (list of users in the channel)
@@ -316,8 +321,8 @@ void join(t_msg *msg, Server &server)
 			names_list += " ";
 		names_list += it->second->getNickname();
 	}
-	utils::sendToUser(RPL_NAMREPLY(server.getHostname(), msg->nickname, channel_name, names_list), msg->sfd);
-	utils::sendToUser(RPL_ENDOFNAMES(server.getHostname(), msg->nickname, channel_name), msg->sfd);
+	utils::sendToUser(RPL_NAMREPLY(server.getHostname(), user->getNickname(), channel_name, names_list), msg->sfd);
+	utils::sendToUser(RPL_ENDOFNAMES(server.getHostname(), user->getNickname(), channel_name), msg->sfd);
 }
 
 void part(t_msg *msg, Server &server)

@@ -19,9 +19,6 @@ Server::~Server(void)
 	{
 		if (this->_pollfds[i].fd != -1)
 		{
-#ifdef DEBUG
-
-#endif
 			close(this->_pollfds[i].fd);
 		}
 	}
@@ -174,9 +171,16 @@ void	Server::removePollfd(int sfd)
 void	Server::removeUser(int sfd)
 {
 	#ifdef DEBUG
-		std::cerr << BLUE;
-		std::cerr << "Removing user: " << *(this->_users[sfd]) << std::endl;
-		std::cerr << RESET;
+		//std::cerr << BLUE;
+		std::map<int, User *>::iterator it = this->_users.find(sfd);	
+		if(it != this->_users.end() && it->second)
+		{
+			std::cerr << "Removing user: " << sfd << 
+			" nick=" << it->second->getNickname() <<
+			" user=" << it->second->getUsername() << std::endl;
+		}
+		else
+			std::cerr << "Removing user with sfd=" << sfd << std::endl;
 		std::cerr << "==========" << std::endl;
 	#endif
 	std::map<int, User *>::iterator it = this->_users.find(sfd);
@@ -304,7 +308,9 @@ void	Server::acceptNewConnections(void)
 			std::cerr << "Error: accept failed" << std::endl;
 			throw std::exception();
 		}
-		std::cerr << "ACCEPT client fd=" << client_sfd << std::endl;
+		#ifdef DEBUG
+			std::cerr << "ACCEPT client fd=" << client_sfd << std::endl;
+		#endif
 		//limite nb clients
 		if (this->_nbUsers >= CLIENT_LIMIT - 1)
 		{
@@ -416,10 +422,6 @@ void	Server::handleNewEvents(void)
 		{
 			std::string	text;
 			int r = this->receive(fd, text);
-		
-			#ifdef DEBUG
-
-			#endif
 			std::map<int, User *>::iterator it = this->_users.find(fd);
 			if (it == this->_users.end() || it->second == NULL)
 			{
@@ -433,15 +435,20 @@ void	Server::handleNewEvents(void)
 				_pollfds[i].revents = 0;
 				continue ;
 			}
+			#ifdef DEBUG
 			if(!text.empty())
 				std::cerr << "Received message from fd " << fd << ": " << text << std::endl;
+			#endif
+
 			User* user = it->second;
 			t_msg msg;
 			msg.sfd = fd;
 			int parse_return = parsing(user->getParseBuffer(), text.c_str(), &msg);
 			while (parse_return == 0)
 			{
+				#ifdef DEBUG
 				std::cerr << "CMD: " << msg.command << " from " << msg.nickname << "\n";
+				#endif
 				utils::dispatchCommand(&msg, *this);
 				parse_return = parsing(user->getParseBuffer(), "", &msg);
 			}
@@ -485,5 +492,10 @@ void	Server::handleNewEvents(void)
 void	Server::printPollfds(void) const
 {}
 
-// std::ostream&	operator<<(std::ostream& os, const Server& server)
-// {}
+std::ostream& operator<<(std::ostream& os, const Server& server)
+{
+    os << "SERVER host=" << server.getHostname()
+       << " users=" << server.getUsers().size()
+       << " channels=" << server.getChannels().size() << std::endl;
+    return os;
+}
