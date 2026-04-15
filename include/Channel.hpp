@@ -55,5 +55,4 @@ class Channel
 		void setTopic(const std::string& topic);
 		void addToWhitelist(const User& user);
 		void clearWhitelist(void);
-		int command(t_msg *msg);
 };
