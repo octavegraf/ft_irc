@@ -35,6 +35,6 @@ d					:	debug
 fsanitize			:	CFLAGS += -fsanitize=address
 fsanitize			:	debug
 
-.PHONY				:	all clean fclean re debug fsanitize
+.PHONY				:	all clean fclean re debug d fsanitize
 .DELETE_ON_ERROR	:
 .SILENT				:

@@ -31,6 +31,20 @@ int	main(int argc, char **argv)
 		return (1);
 	}
 
+	for (int i = 0; !argv[argc - 1][i]; i++)
+	{
+		if (!isdigit(i))
+		{
+			std::cerr << ERR_NOT_DIGIT << std::endl;
+			return (1);
+		}
+	}
+	if (atoi(argv[1]) < 1 || atoi(argv[1]) > 65535)
+	{
+		std::cerr << ERR_INVALID_PORT << std::endl;
+		return (1);
+	}
+	
 	// check inputs
 
 	// init server: fetch socket type + create a socket + bind the socket to the host and port

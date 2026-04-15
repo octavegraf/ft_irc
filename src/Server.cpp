@@ -124,9 +124,6 @@ int Server::joinChannel(const User& user, const std::string& channelName, const 
 	if (is_new_channel)
 	{
 		channel->addOP(user);
-		#ifdef DEBUG
-
-		#endif
 	}
 	return (0); // Success
 }
@@ -171,17 +168,15 @@ void	Server::removePollfd(int sfd)
 void	Server::removeUser(int sfd)
 {
 	#ifdef DEBUG
-		//std::cerr << BLUE;
-		std::map<int, User *>::iterator it = this->_users.find(sfd);	
-		if(it != this->_users.end() && it->second)
+		std::map<int, User *>::iterator debugIt = this->_users.find(sfd);	
+		if(debugIt != this->_users.end() && debugIt->second)
 		{
 			std::cerr << "Removing user: " << sfd << 
-			" nick=" << it->second->getNickname() <<
-			" user=" << it->second->getUsername() << std::endl;
+			" nick: " << debugIt->second->getNickname() <<
+			" user: " << debugIt->second->getUsername() << std::endl;
 		}
 		else
-			std::cerr << "Removing user with sfd=" << sfd << std::endl;
-		std::cerr << "==========" << std::endl;
+			std::cerr << "Removing user with sfd: " << sfd << std::endl;
 	#endif
 	std::map<int, User *>::iterator it = this->_users.find(sfd);
 	if (it != this->_users.end())
@@ -447,7 +442,7 @@ void	Server::handleNewEvents(void)
 			while (parse_return == 0)
 			{
 				#ifdef DEBUG
-				std::cerr << "CMD: " << msg.command << " from " << msg.nickname << "\n";
+					std::cerr << "CMD: " << msg.command << " from " << msg.nickname << "\n";
 				#endif
 				utils::dispatchCommand(&msg, *this);
 				parse_return = parsing(user->getParseBuffer(), "", &msg);

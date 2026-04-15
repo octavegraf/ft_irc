@@ -13,7 +13,7 @@ void cap(t_msg *msg, Server &server)
 	// CAP LS response
 	if (msg->params[0] == "LS")
 	{
-		utils::sendToUser(":" + server.getHostname() + " CAP * LS :\r\n", msg->sfd);
+		utils::sendToUser(":" + server.getHostname() + " CAP * LS :\r\n", msg->sfd); 
 	}
 	// CAP END response
 	else if (msg->params[0] == "END")
@@ -109,7 +109,6 @@ void nick(t_msg *msg, Server &server)
 		// Send motd
 		utils::sendToUser(RPL_MOTDSTART(server.getHostname(), user->getNickname()), msg->sfd);
 		utils::sendToUser(RPL_MOTD(server.getHostname(), user->getNickname(), "-"), msg->sfd);
-		utils::sendToUser(RPL_MOTD(server.getHostname(), user->getNickname(), "Welcome to IRC"), msg->sfd);
 		utils::sendToUser(RPL_ENDOFMOTD(server.getHostname(), user->getNickname()), msg->sfd);
 		
 		// Mark user as registered
@@ -158,7 +157,6 @@ void user(t_msg *msg, Server &server)
 		// Send motd
 		utils::sendToUser(RPL_MOTDSTART(server.getHostname(), newUser->getNickname()), msg->sfd);
 		utils::sendToUser(RPL_MOTD(server.getHostname(), newUser->getNickname(), "-"), msg->sfd);
-		utils::sendToUser(RPL_MOTD(server.getHostname(), newUser->getNickname(), "Welcome to IRC"), msg->sfd);
 		utils::sendToUser(RPL_ENDOFMOTD(server.getHostname(), newUser->getNickname()), msg->sfd);
 
 		// Mark user as registered
@@ -519,6 +517,17 @@ void mode(t_msg *msg, Server &server)
 	}
 
 	std::string channel_name = msg->params[0];
+	if (channel_name[0] != '#' && channel_name[0] != '&')
+	{
+		User *target_user = utils::searchUser(channel_name, server.getUsers());
+		if (!target_user)
+		{
+			utils::sendToUser(ERR_NOSUCHNICK(server.getHostname(), msg->nickname, channel_name), msg->sfd);
+			return;
+		}
+		utils::sendToUser(RPL_UMODEIS(server.getHostname(), target_user->getNickname(), msg->params[1]), msg->sfd);
+		return;
+	}
 	Channel *channel = utils::searchChannel(channel_name, server.getChannels());
 	if (!channel)
 	{

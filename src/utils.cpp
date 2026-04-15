@@ -40,9 +40,6 @@ User *utils::searchUser(std::string nickname, std::map<int, User *> users)
 	{
 		if (it->second->getNickname() == nickname)
 		{
-			#ifdef DEBUG
-			
-			#endif
 			return (it->second);
 		}
 	}
@@ -104,11 +101,9 @@ void utils::dispatchCommand(t_msg *msg, Server &server)
 	{
 		if (msg->command == commandsList[i])
 		{
-#ifdef DEBUG
-			//std::cerr << RED;
-			std::cerr << "Executing command: " << msg->command << std::endl;
-			//std::cerr << RESET;
-#endif
+			#ifdef DEBUG
+				std::cerr << "Executing command: " << msg->command << std::endl;
+			#endif
 			switch (i)
 			{
 				case 0:
