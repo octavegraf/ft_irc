@@ -241,8 +241,7 @@ int	Server::bindPort(struct addrinfo *info)
 			std::cerr << "Error: setsockopt failed" << std::endl;
 			continue;
 		}
-		int flags = fcntl(sfd, F_GETFL, 0);
-		if (flags == -1 || fcntl(sfd, F_SETFL, flags | O_NONBLOCK) == -1)
+		if (fcntl(sfd, F_SETFL, O_NONBLOCK) == -1)
 		{
 			std::cerr << "Error: failed to set socket to non-blocking" << std::endl;
 			close(sfd);
@@ -261,7 +260,14 @@ int Server::getListenSfd(const char *port)
 	struct addrinfo *info = NULL;
 
 	getProtocolConnexionInfo(&info, port, AI_PASSIVE, AF_UNSPEC, SOCK_STREAM, "tcp");
-	int sfd = bindPort(info);
+	int sfd = -1;
+	try {
+		sfd = bindPort(info);
+	}
+	catch (const std::exception& e) {
+		freeaddrinfo(info);
+		throw;
+	}
 	freeaddrinfo(info);
 
 	if (listen(sfd, SOMAXCONN) == -1)
@@ -314,8 +320,7 @@ void	Server::acceptNewConnections(void)
 			continue ;
 		}
 		// mettre client non bloquant
-		int flags = fcntl(client_sfd, F_GETFL, 0);
-		if (flags == -1 || fcntl(client_sfd, F_SETFL, flags | O_NONBLOCK) == -1)
+		if (fcntl(client_sfd, F_SETFL, O_NONBLOCK) == -1)
 		{
 			std::cerr << "Error: failed to set client socket to non-blocking" << std::endl;
 			close(client_sfd);
