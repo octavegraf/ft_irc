@@ -9,7 +9,7 @@
 #include <poll.h>
 #include <errno.h>
 #include <fcntl.h>
-
+#include <cstring>
 #include "Channel.hpp"
 #include "User.hpp"
 #include "message.hpp"
@@ -40,7 +40,7 @@ class Server
 		void	removePollfd(int sfd);
 		void	removeUser(int sfd);
 
-		void	receive(int sfd, std::string& text);
+		int	receive(int sfd, std::string& text);
 
 		int	createChannel(const std::string& channelName);
 		int	deleteChannel(const std::string& channelName);

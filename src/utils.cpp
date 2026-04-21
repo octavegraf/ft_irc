@@ -1,7 +1,6 @@
 #include "utils.hpp"
 #include "commands.hpp"
 #include <iomanip>
-#include "colors.hpp"
 
 extern bool	interrupt;
 
@@ -12,18 +11,25 @@ void utils::debugSendRight(const std::string &message)
 
 static void	sigint_handler(int sig)
 {
-	if (sig == SIGINT)
-		interrupt = true;
+	(void)sig;
+	interrupt = true;
 }
 
 int	utils::setup_signal_action(struct sigaction *sa)
 {
+	if (!sa)
+		return (-1);
+	std::memset(sa, 0, sizeof(*sa));
 	sa->sa_handler = sigint_handler;
+	sigemptyset(&sa->sa_mask);
 	sa->sa_flags = 0;
-	sigemptyset(&(sa->sa_mask));
-	if (sigaction(SIGINT, sa, NULL) != 0)
-		return (0); // throw exception instead?
-	return (1);
+
+	if (sigaction(SIGINT, sa, NULL) == -1)
+	{
+		std::cerr << "Error: failed to set up SIGINT handler" << std::endl;
+		return (-1);
+	}
+	return (0);
 }
 
 User *utils::searchUser(std::string nickname, std::map<int, User *> users)
@@ -34,12 +40,6 @@ User *utils::searchUser(std::string nickname, std::map<int, User *> users)
 	{
 		if (it->second->getNickname() == nickname)
 		{
-#ifdef DEBUG
-			std::cerr << BLUE;
-			std::cerr << "User " << nickname << " found." << std::endl;
-			std::cerr << RESET;
-			std::cerr << "==========" << std::endl;
-#endif
 			return (it->second);
 		}
 	}
@@ -58,37 +58,25 @@ Channel *utils::searchChannel(std::string name, const std::map<std::string, Chan
 
 void utils::sendToUser(const std::string &message, const int &sfd)
 {
-	struct pollfd	send_pollfd;
-	send_pollfd.fd = sfd;
-	send_pollfd.events = POLLOUT;
-	send_pollfd.revents = 0;
-
-	size_t	total_sent = 0;
-	size_t	to_send = message.length();
+	if(sfd < 0)
+		return ;
 	
-#ifdef DEBUG
-	std::cerr << YELLOW;
-	std::cerr << "Sending:" << std::endl;
-#endif
-	while (total_sent < to_send)
+	std::string out = message;
+	if(out.size() < 2 || out.substr(out.size() - 2) != "\r\n")
+		out += "\r\n";
+	const char* buf = out.c_str();
+	size_t totalSent = 0;
+	size_t len = out.size();
+	while (totalSent < len)
 	{
-		int res_poll = poll(&send_pollfd, 1, 1);
-		if (res_poll == -1)
-			throw std::exception();
-		if (res_poll == 0)
-			continue;
-		
-		ssize_t sent = send(send_pollfd.fd, message.c_str() + total_sent, to_send - total_sent, 0);
-#ifdef DEBUG
-		std::cerr << message.substr(total_sent, total_sent + sent) << std::endl;
-#endif
-		if (sent == -1)
-			throw std::exception();
-		total_sent += sent;
+		ssize_t sent = send(sfd, buf + totalSent, len - totalSent, 0);
+		if(sent > 0)
+			totalSent += static_cast<size_t>(sent);
+		else if (sent == -1 && (errno == EWOULDBLOCK || errno == EAGAIN))
+			break;
+		else
+			break;
 	}
-#ifdef DEBUG
-	std::cerr << RESET;
-#endif
 }
 
 void utils::sendToUser(const std::string &message, const User *user)
@@ -113,11 +101,9 @@ void utils::dispatchCommand(t_msg *msg, Server &server)
 	{
 		if (msg->command == commandsList[i])
 		{
-#ifdef DEBUG
-			std::cerr << RED;
-			std::cerr << "Executing command: " << msg->command << std::endl;
-			std::cerr << RESET;
-#endif
+			#ifdef DEBUG
+				std::cerr << "Executing command: " << msg->command << std::endl;
+			#endif
 			switch (i)
 			{
 				case 0:
@@ -162,4 +148,12 @@ void utils::dispatchCommand(t_msg *msg, Server &server)
 			}
 		}
 	}
+}
+
+std::ostream& operator<<(std::ostream& os, const User& user)
+{
+    os << "User[nick=" << user.getNickname()
+       << ", user=" << user.getUsername()
+       << ", sfd=" << user.getSfd() << "]";
+    return os;
 }

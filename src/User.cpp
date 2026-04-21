@@ -5,8 +5,7 @@ User::User(const int sfd) :
 {}
 
 User::~User()
-{
-}
+{}
 
 const std::string& User::getNickname(void) const
 {
@@ -68,23 +67,9 @@ void User::completeInfo(const bool& status)
 	this->_completeInfos = status;
 }
 
-std::ostream&	operator<<(std::ostream& os, const User& user)
-{
-	os << "\tnickname: " << user._nickname << std::endl;
-	os << "\tusername: " << user._username << std::endl;
-	os << "\trealname: " << user._realname << std::endl;
-	os << "\tsfd: " << user._sfd << std::endl;
-	os << "\tcompleteInfos: " << user._completeInfos << std::endl;
-	return (os);
-}
+// std::ostream&	operator<<(std::ostream& os, const User& user)
+// {}
 
-std::ostream&	operator<<(std::ostream& os, const std::map<int, User *>& users)
-{
-	for (std::map<int, User *>::const_iterator it=users.begin(); it != users.end(); it++)
-	{
-		os << "*";
-		os << *(it->second);
-	}
-	return (os);
-}
+// std::ostream&	operator<<(std::ostream& os, const std::map<int, User *>& users)
+// {}
 
